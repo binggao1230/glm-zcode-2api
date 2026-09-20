@@ -15,7 +15,7 @@ glm-zcode-2api 是一个本机反向代理：把 ZCode（GLM Coding Plan / Z.ai 
 2. 构建：`CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/glm-zcode-2api ./cmd/server`
 3. 启动：`python3 scripts/omp-gateway.py start` → 健康检查 `curl -s http://127.0.0.1:7864/healthz`。
 4. 口令：`python3 scripts/omp-gateway.py token`（机密，勿外泄）。
-5. OMP：把 `zcode` provider 合并进 `~/.omp/agent/models.yml`，`apiKey` 指向取口令命令（见 `AI_SETUP.md` 第 7 步的完整 yaml）。
+5. OMP：把 `zcode` provider 合并进 `~/.omp/agent/models.yml`，`apiKey` 指向取口令命令；`models` 列表按 `/v1/models` 与运行配置生成，不要照抄示例（见 `AI_SETUP.md` 第 7 步）。
 6. 验收：`omp models zcode` 列出模型；`omp --model zcode/glm-5.3-flash` 正常回答。
 
 ## 纪律

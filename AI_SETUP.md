@@ -17,7 +17,11 @@ glm-zcode-2api 是一个本机反向代理：把 ZCode（GLM Coding Plan / Z.ai 
 4. **启动**：`python3 scripts/omp-gateway.py start`
 5. **验证网关**：`curl -s http://127.0.0.1:7864/healthz` 应返回 `{"service":"glm-zcode-2api","healthy":true,...}`；不健康时读取 `~/.local/state/glm-zcode-2api/gateway.log` 排查。
 6. **取访问口令**：`python3 scripts/omp-gateway.py token`（输出即口令；不要把它写进任何文件或公开展示）。
-7. **接入 OMP（oh-my-pi）**：编辑 `~/.omp/agent/models.yml`，在 providers 下合并以下内容（已有 `zcode` 就更新；`<repo>` 替换为实际路径）：
+7. **接入 OMP（oh-my-pi）**：先取套餐实际模型列表，再生成配置——
+   - `KEY=$(python3 scripts/omp-gateway.py token)`
+   - `curl -s http://127.0.0.1:7864/v1/models -H "Authorization: Bearer $KEY"` 得到套餐模型 id 列表
+   - 读取 `~/.local/state/glm-zcode-2api/config.json` 的 `models` 数组，取每个模型的 `context_length`、`max_output_tokens`、`supports_images`
+   - 编辑 `~/.omp/agent/models.yml`，在 providers 下合并以下骨架（已有 `zcode` 就更新；`<repo>` 替换为实际路径；`models` 按前面步骤的结果生成，`name` 用 `ZCode / <模型名>`，`supports_images: true` 时 `input: [text, image]` 否则 `[text]`）：
 
    ```yaml
      zcode:
