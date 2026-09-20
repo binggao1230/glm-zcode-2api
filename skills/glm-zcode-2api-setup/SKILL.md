@@ -1,25 +1,25 @@
 ---
 name: glm-zcode-2api-setup
-description: 安装并配置 glm-zcode-2api——把本机 ZCode（GLM Coding Plan）订阅变成 OpenAI 兼容 API，并接入 OMP。当用户想要安装、启动、排查 glm-zcode-2api，或把 ZCode 订阅接入 OpenAI 客户端 / OMP 时使用。
+description: Install and configure glm-zcode-2api — expose a local ZCode (GLM Coding Plan) subscription as an OpenAI-compatible API and wire it into OMP. Use when the user wants to install, start or troubleshoot glm-zcode-2api, or connect their ZCode plan to OpenAI clients / OMP.
 ---
 
-# glm-zcode-2api 安装与配置
+# glm-zcode-2api setup
 
-glm-zcode-2api 是一个本机反向代理：把 ZCode（GLM Coding Plan / Z.ai Coding Plan）订阅的 Anthropic 端点包装成 OpenAI 兼容 API（`/v1/chat/completions`、`/v1/models`）。
+glm-zcode-2api is a local reverse proxy that wraps the Anthropic endpoint of a ZCode (GLM Coding Plan / Z.ai Coding Plan) subscription into an OpenAI-compatible API (`/v1/chat/completions`, `/v1/models`).
 
-完整步骤、验收标准与安全纪律见仓库根目录的 `AI_SETUP.md`；仓库地址：<https://github.com/binggao1230/glm-zcode-2api>
+The full procedure, acceptance criteria and safety rules live in `AI_SETUP.md` at the repository root: <https://github.com/binggao1230/glm-zcode-2api/blob/main/AI_SETUP.md>
 
-## 摘要
+## Summary
 
-1. 前置：ZCode 已登录（`~/.zcode/v2/config.json`）、Go ≥ 1.22、Python 3。
-2. 构建：`CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/glm-zcode-2api ./cmd/server`
-3. 启动：`python3 scripts/omp-gateway.py start` → 健康检查 `curl -s http://127.0.0.1:7864/healthz`。
-4. 口令：`python3 scripts/omp-gateway.py token`（机密，勿外泄）。
-5. OMP：把 `zcode` provider 合并进 `~/.omp/agent/models.yml`，`apiKey` 指向取口令命令；`models` 列表按 `/v1/models` 与运行配置生成，不要照抄示例（见 `AI_SETUP.md` 第 7 步）。
-6. 验收：`omp models zcode` 列出模型；`omp --model zcode/glm-5.3-flash` 正常回答。
+1. Prerequisites: ZCode signed in locally (`~/.zcode/v2/config.json`), Go ≥ 1.22, Python 3.
+2. Build: `CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/glm-zcode-2api ./cmd/server`
+3. Start: `python3 scripts/omp-gateway.py start` → health check `curl -s http://127.0.0.1:7864/healthz`.
+4. Token: `python3 scripts/omp-gateway.py token` (secret — never expose).
+5. OMP: merge the `zcode` provider into `~/.omp/agent/models.yml`, with `apiKey` pointing at the token-printing command; generate the `models` list from `/v1/models` and the runtime config instead of copying examples (see step 7 of `AI_SETUP.md`).
+6. Acceptance: `omp models zcode` lists the models; `omp --model zcode/glm-5.3-flash` answers normally.
 
-## 纪律
+## Discipline
 
-- 不提交、不打印任何真实凭据（client.key、上游 apiKey、账号 ID）；
-- 口令校验强制开启，不得关闭；不修改 ZCode App 文件；
-- 排查日志：`~/.local/state/glm-zcode-2api/gateway.log`。
+- Never commit or print real credentials (client.key, upstream apiKey, account IDs);
+- Token auth is mandatory — do not disable it; never modify ZCode app files;
+- Troubleshooting log: `~/.local/state/glm-zcode-2api/gateway.log`.
