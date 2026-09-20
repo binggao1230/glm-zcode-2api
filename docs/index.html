@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-lang="zh">
+<html lang="en" data-lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>glm-zcode-2api · 把 ZCode 订阅变成 OpenAI 兼容 API / Turn your ZCode plan into an OpenAI-compatible API</title>
-<meta name="description" content="本机反向代理：把 ZCode 订阅原生变成 OpenAI 兼容 API，凭据零搬运，工具循环与思考档位完整透传。A local reverse proxy that exposes the ZCode plan as an OpenAI-compatible API.">
+<title>glm-zcode-2api · Turn your ZCode plan into an OpenAI-compatible API</title>
+<meta name="description" content="A local reverse proxy that turns your ZCode plan into an OpenAI-compatible API — zero credential copying, tool loops and thinking effort fully preserved.">
 <style>
   :root{
     --bg:#0b0f14; --panel:#11161d; --panel2:#0e1319; --line:#1f2733;
@@ -255,7 +255,7 @@ zcode:
     });
   }
   (function(){
-    var saved = 'zh';
+    var saved = 'en';
     try{ saved = localStorage.getItem('z2a-lang') || 'zh'; }catch(e){}
     setLang(saved);
   })();
