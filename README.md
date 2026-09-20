@@ -9,7 +9,7 @@
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
-[项目主页](https://binggao1230.github.io/glm-zcode-2api/) · [文档](#-快速开始) · [English](README.en.md)
+[项目主页](https://binggao1230.github.io/glm-zcode-2api/) · [文档](#快速开始) · [English](README.en.md)
 
 </div>
 
@@ -18,9 +18,9 @@
 - 凭据**只读 ZCode 本机配置**（`~/.zcode/v2/config.json`），不复制、不改写 App 文件，密钥不落仓库、不进 OMP 配置；
 - 默认监听 `0.0.0.0:7864`（局域网可访问），访问口令强制；口令由启动器生成，仅存本机 `~/.local/state/glm-zcode-2api/client.key`（0600）。
 
-> ⚠️ **合规须知**：本项目是非官方网关，使用你本人的 ZCode 账号作为上游，仅限本人账号、本机 / 私有环境自用。上游接口与配额由智谱侧控制，可能随时变化。
+>  **合规须知**：本项目是非官方网关，使用你本人的 ZCode 账号作为上游，仅限本人账号、本机 / 私有环境自用。上游接口与配额由智谱侧控制，可能随时变化。
 
-## ✅ 适合 / ❌ 不适合
+## 适合 / 不适合
 
 **适合：**
 
@@ -34,14 +34,14 @@
 - 绕过套餐限制或计费——上游错误与计费行为原样透传，不做任何伪装；
 - 需要后台管理界面——这是无 UI 的单机网关。
 
-## 🤔 为什么不是"直接填 baseURL"
+## 为什么不是"直接填 baseURL"
 
 | 方案 | 问题 |
 |---|---|
 | OMP 直连 `open.bigmodel.cn/api/anthropic` | OpenAI 协议客户端说不了 Anthropic 协议；且请求无 ZCode 归因头，闲时优惠与套餐权益按普通调用记账 |
 | 其他 zcode2api 类网关 | 各有侧重；本项目额外做了三件事：**归因头镜像**（闲时优惠同权）、**签名思考回放**（工具循环必需，见下）、**凭据零搬运**（ZCode 重新登录后自动跟随，无需改任何配置） |
 
-## ✨ 特性
+## 特性
 
 - **OpenAI 完全兼容** — `/v1/chat/completions`、`/v1/models`；流式 SSE 与非流式聚合双模式，任意 OpenAI SDK / CLI 零改造接入
 - **签名思考回放** — 工具循环自动补回带 `signature` 的 thinking 块：OpenAI 客户端只回显可见文本，网关在内存 LRU 中记住签名并自动补回
@@ -52,7 +52,7 @@
 - **错误如实透传** — 上游 429 / 401 / 400 原样映射为 OpenAI 错误，流内错误不会被伪装成正常结束
 - **单二进制** — 纯 Go 标准库、零第三方依赖，macOS / Linux / Windows
 
-## 🚀 快速开始
+## 快速开始
 
 ### 环境要求
 
@@ -93,7 +93,7 @@ python3 scripts/omp-gateway.py stop
 python3 scripts/omp-gateway.py token     # 打印访问口令（OMP 按需启动时用）
 ```
 
-## 🔌 接入 OMP（oh-my-pi）
+## 接入 OMP（oh-my-pi）
 
 `~/.omp/agent/models.yml`：
 
@@ -129,7 +129,7 @@ omp --model zcode/glm-5.3-flash
 omp models zcode
 ```
 
-## 🌐 局域网访问
+## 局域网访问
 
 网关默认监听 `0.0.0.0:7864`，同网段设备直接可用：
 
@@ -144,7 +144,7 @@ curl -s http://192.168.x.x:7864/v1/models -H "Authorization: Bearer $KEY"
 - 口令即账号额度使用权：泄漏后 `rm ~/.local/state/glm-zcode-2api/client.key && python3 scripts/omp-gateway.py restart` 自动轮换，客户端无需改配置；
 - 首次从其他设备连接时，macOS 防火墙可能弹出「允许传入连接」，放行即可。
 
-## 🏷️ 闲时优惠与请求归因
+## 闲时优惠与请求归因
 
 新版 GLM Coding Plan 按积分计费，**非高峰时段（含周末全天）的调用只消耗 50% 标准积分**（[官方说明](https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash)）。这类权益按**客户端归因**判定：ZCode App 在模型请求上携带一整套标识头，裸的第三方请求没有这套身份，服务端按普通调用记账。
 
@@ -165,7 +165,7 @@ metadata.user_id: <账号 ID>
 
 验证方法：闲时窗口内用 `glm-5.3-flash` 跑几轮，对比 ZCode 用量页 / 上游账单是否按 50% 计（关闭 mimic 跑同样的量作对照）。
 
-## ⚙️ 配置说明
+## 配置说明
 
 `config.example.json` 是完整参考；实际运行配置由启动器写入 `~/.local/state/glm-zcode-2api/config.json`。
 
@@ -192,7 +192,7 @@ metadata.user_id: <账号 ID>
 
 环境变量覆盖（非空才生效）：`Z2A_LISTEN`、`Z2A_API_KEY`、`Z2A_UPSTREAM_BASE_URL`、`Z2A_UPSTREAM_PROVIDER_ID`、`Z2A_UPSTREAM_API_KEY`、`Z2A_CREDENTIAL_CONFIG_PATH`、`Z2A_CLIENT_TIMEZONE`、`Z2A_USER_AGENT`、`Z2A_MAX_BODY_MB`、`Z2A_THINKING_ENABLED`、`Z2A_THINKING_EFFORT`、`Z2A_IDLE_TIMEOUT_SECONDS`。启动器会过滤掉这些变量，避免环境意外改变上游目的地。
 
-## 🚨 错误处理
+## 错误处理
 
 | 上游 | 网关 | 说明 |
 |---|---|---|
@@ -202,7 +202,7 @@ metadata.user_id: <账号 ID>
 | ≥500 / 网络失败 | 502 | 上游不可用 |
 | 流内 `error` 事件 | SSE `{"error":…}` + `[DONE]` | 已开始的流不会被伪装成正常结束 |
 
-## 🩺 常见问题（Troubleshooting）
+## 常见问题（Troubleshooting）
 
 | 症状 | 原因与处置 |
 |---|---|
@@ -212,7 +212,7 @@ metadata.user_id: <账号 ID>
 | 第二轮工具调用上游 400 | 网关重启清空了签名思考回放缓存——重新开始该轮对话即可 |
 | 局域网设备连不上 | macOS 防火墙放行；确认 `listen` 是 `0.0.0.0` 而非 `127.0.0.1` |
 
-## 📁 项目结构
+## 项目结构
 
 ```
 glm-zcode-2api/
@@ -229,7 +229,7 @@ glm-zcode-2api/
 └── bin/                    # 构建产物（git 忽略）
 ```
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [ ] Release 自动化（goreleaser 多平台二进制）
 - [ ] Docker 镜像（凭据目录挂载）
@@ -237,7 +237,7 @@ glm-zcode-2api/
 - [ ] `zcode.z.ai` ZCode 自有套餐端点支持（需 `Authorization: Bearer` 鉴权方式）
 - [ ] Homebrew tap
 
-## 🤝 Contributing
+## Contributing
 
 欢迎 Issue 与 PR：
 
@@ -245,11 +245,11 @@ glm-zcode-2api/
 - 提交前跑 `gofmt -w . && go vet ./... && go test ./...`；
 - **严禁提交任何真实凭据**（key、JWT、账号 ID、client.key）。
 
-## 📜 License
+## License
 
 [MIT](LICENSE)
 
-## 🙏 致谢
+## 致谢
 
 - [Sliverkiss/workbuddy2api](https://github.com/Sliverkiss/workbuddy2api) —— 同类思路（CodeBuddy 网关）的先行者
 - [Z.ai / 智谱 GLM](https://z.ai) —— GLM Coding Plan 与 GLM-5.3 系列

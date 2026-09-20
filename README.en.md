@@ -9,7 +9,7 @@
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue)]()
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
-[Project site](https://binggao1230.github.io/glm-zcode-2api/) · [Docs](#-quick-start) · [简体中文](README.md)
+[Project site](https://binggao1230.github.io/glm-zcode-2api/) · [Docs](#quick-start) · [简体中文](README.md)
 
 </div>
 
@@ -18,9 +18,9 @@ Wraps the **ZCode** (BigModel Coding Plan / Z.ai Coding Plan) Anthropic endpoint
 - Credentials are **read-only from the local ZCode installation** (`~/.zcode/v2/config.json`) — never copied, the app files are never modified, and no key ever lands in the repo or the OMP config;
 - Listens on `0.0.0.0:7864` by default (LAN-accessible) with a mandatory access token, stored at `~/.local/state/glm-zcode-2api/client.key` (0600).
 
-> ⚠️ **Disclaimer**: this is an unofficial gateway that uses *your own* ZCode account as upstream. Personal, local use only. The upstream API and quotas are controlled by Zhipu and may change at any time.
+>  **Disclaimer**: this is an unofficial gateway that uses *your own* ZCode account as upstream. Personal, local use only. The upstream API and quotas are controlled by Zhipu and may change at any time.
 
-## ✅ Good fit / ❌ Not a fit
+## Good fit /  Not a fit
 
 **Good fit:**
 
@@ -34,14 +34,14 @@ Wraps the **ZCode** (BigModel Coding Plan / Z.ai Coding Plan) Anthropic endpoint
 - Bypassing plan limits or billing — upstream errors and billing behavior pass through untouched;
 - Anyone needing an admin UI — this is a headless, single-host gateway.
 
-## 🤔 Why not "just set the baseURL"
+## Why not "just set the baseURL"
 
 | Option | Problem |
 |---|---|
 | Point OMP straight at `open.bigmodel.cn/api/anthropic` | OpenAI clients don't speak the Anthropic protocol; and requests carry no ZCode attribution headers, so off-peak discounts and plan perks are billed as ordinary usage |
 | Other zcode2api-style gateways | Each has its own focus; this project adds three things: **attribution header mirroring** (same off-peak treatment), **signed-thinking replay** (required by tool loops, see below), and **zero credential copying** (follows ZCode re-logins automatically) |
 
-## ✨ Features
+## Features
 
 - **Fully OpenAI-compatible** — `/v1/chat/completions`, `/v1/models`; streaming SSE and aggregated non-streaming modes, drop-in for any OpenAI SDK/CLI
 - **Signed thinking replay** — tool loops automatically get the `signature`-bearing thinking block re-injected: OpenAI clients only echo visible text, the gateway remembers signatures in an in-memory LRU
@@ -52,7 +52,7 @@ Wraps the **ZCode** (BigModel Coding Plan / Z.ai Coding Plan) Anthropic endpoint
 - **Honest errors** — upstream 429 / 401 / 400 map to OpenAI errors as-is; mid-stream errors are never disguised as success
 - **Single binary** — pure Go standard library, zero third-party dependencies, macOS / Linux / Windows
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Requirements
 
@@ -93,7 +93,7 @@ python3 scripts/omp-gateway.py stop
 python3 scripts/omp-gateway.py token     # print the access token (used by OMP)
 ```
 
-## 🔌 OMP (oh-my-pi) integration
+## OMP (oh-my-pi) integration
 
 `~/.omp/agent/models.yml`:
 
@@ -129,7 +129,7 @@ omp --model zcode/glm-5.3-flash
 omp models zcode
 ```
 
-## 🌐 LAN access
+## LAN access
 
 The gateway listens on `0.0.0.0:7864` by default:
 
@@ -144,7 +144,7 @@ curl -s http://192.168.x.x:7864/v1/models -H "Authorization: Bearer $KEY"
 - The token equals usage rights to your plan: if leaked, `rm ~/.local/state/glm-zcode-2api/client.key && python3 scripts/omp-gateway.py restart` rotates it, clients need no changes;
 - macOS may prompt to allow incoming connections the first time a LAN device connects.
 
-## 🏷️ Off-peak discounts & request attribution
+## Off-peak discounts & request attribution
 
 The new GLM Coding Plan is credit-based: **calls during off-peak hours (including all weekend) consume only 50% of standard credits** ([official docs](https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash)). These perks are decided by **client attribution**: the ZCode app attaches a full set of identity headers to model requests; bare third-party requests are billed as ordinary usage.
 
@@ -165,7 +165,7 @@ metadata.user_id: <account id>
 
 To verify: run a few `glm-5.3-flash` rounds inside the off-peak window and compare the ZCode usage page / upstream billing against 50% (run the same volume with mimic off as a control).
 
-## ⚙️ Configuration
+## Configuration
 
 `config.example.json` is the full reference; the runtime config is written by the launcher to `~/.local/state/glm-zcode-2api/config.json`.
 
@@ -192,7 +192,7 @@ To verify: run a few `glm-5.3-flash` rounds inside the off-peak window and compa
 
 Environment overrides (only non-empty values apply): `Z2A_LISTEN`, `Z2A_API_KEY`, `Z2A_UPSTREAM_BASE_URL`, `Z2A_UPSTREAM_PROVIDER_ID`, `Z2A_UPSTREAM_API_KEY`, `Z2A_CREDENTIAL_CONFIG_PATH`, `Z2A_CLIENT_TIMEZONE`, `Z2A_USER_AGENT`, `Z2A_MAX_BODY_MB`, `Z2A_THINKING_ENABLED`, `Z2A_THINKING_EFFORT`, `Z2A_IDLE_TIMEOUT_SECONDS`. The launcher filters these out so the environment can't silently change the upstream destination.
 
-## 🚨 Error handling
+## Error handling
 
 | Upstream | Gateway | Notes |
 |---|---|---|
@@ -202,7 +202,7 @@ Environment overrides (only non-empty values apply): `Z2A_LISTEN`, `Z2A_API_KEY`
 | ≥500 / network failure | 502 | Upstream unavailable |
 | In-stream `error` event | SSE `{"error":…}` + `[DONE]` | An already-open stream is never disguised as a clean success |
 
-## 🩺 Troubleshooting
+## Troubleshooting
 
 | Symptom | Cause & fix |
 |---|---|
@@ -212,7 +212,7 @@ Environment overrides (only non-empty values apply): `Z2A_LISTEN`, `Z2A_API_KEY`
 | Upstream 400 on the second tool-loop turn | A gateway restart wiped the signed-thinking replay cache — restart that conversation turn |
 | LAN device can't connect | Allow it in the macOS firewall; make sure `listen` is `0.0.0.0`, not `127.0.0.1` |
 
-## 📁 Project structure
+## Project structure
 
 ```
 glm-zcode-2api/
@@ -229,7 +229,7 @@ glm-zcode-2api/
 └── bin/                    # build output (git-ignored)
 ```
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [ ] Automated releases (goreleaser, multi-platform binaries)
 - [ ] Docker image (mounted credential directory)
@@ -237,7 +237,7 @@ glm-zcode-2api/
 - [ ] `zcode.z.ai` ZCode-plan endpoint support (requires `Authorization: Bearer` auth)
 - [ ] Homebrew tap
 
-## 🤝 Contributing
+## Contributing
 
 Issues and PRs welcome:
 
@@ -245,11 +245,11 @@ Issues and PRs welcome:
 - Run `gofmt -w . && go vet ./... && go test ./...` before submitting;
 - **Never commit real credentials** (keys, JWTs, account IDs, client.key).
 
-## 📜 License
+## License
 
 [MIT](LICENSE)
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 - [Sliverkiss/workbuddy2api](https://github.com/Sliverkiss/workbuddy2api) — the pioneer of this gateway pattern (CodeBuddy)
 - [Z.ai / Zhipu GLM](https://z.ai) — GLM Coding Plan and the GLM-5.3 family

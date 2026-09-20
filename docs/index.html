@@ -141,22 +141,22 @@
   <div class="wrap">
     <h2 data-l="zh">特性</h2><h2 data-l="en">Features</h2>
     <div class="grid">
-      <div class="card" data-l="zh"><h3><span class="ic">🔌</span>OpenAI 完全兼容</h3><p><code>/v1/chat/completions</code>、<code>/v1/models</code>；流式 SSE 与非流式聚合双模式，任意 OpenAI SDK / CLI 零改造接入。</p></div>
-      <div class="card" data-l="en"><h3><span class="ic">🔌</span>OpenAI-compatible</h3><p><code>/v1/chat/completions</code> and <code>/v1/models</code>; streaming SSE and aggregated non-streaming. Any OpenAI SDK/CLI works unchanged.</p></div>
-      <div class="card" data-l="zh"><h3><span class="ic">🔐</span>凭据零搬运</h3><p>只读 ZCode 本机配置取 apiKey，不复制、不改写 App 文件；密钥不落仓库、不进 OMP 配置。</p></div>
-      <div class="card" data-l="en"><h3><span class="ic">🔐</span>Zero credential copying</h3><p>Reads the apiKey from the local ZCode config. No copies, no app-file rewrites; no key in the repo or OMP config.</p></div>
-      <div class="card" data-l="zh"><h3><span class="ic">🧠</span>签名思考回放</h3><p>工具循环自动补回带 <code>signature</code> 的 thinking 块——OpenAI 客户端只回显文本，网关替你记住签名。</p></div>
-      <div class="card" data-l="en"><h3><span class="ic">🧠</span>Signed thinking replay</h3><p>Tool loops automatically get the <code>signature</code>-bearing thinking block re-injected — clients only echo visible text, the gateway remembers signatures for you.</p></div>
-      <div class="card" data-l="zh"><h3><span class="ic">🎚️</span>思考档位透传</h3><p><code>reasoning_effort</code> → <code>output_config.effort</code>，low / medium / high / max 映射到上游；未指定时用配置默认。</p></div>
-      <div class="card" data-l="en"><h3><span class="ic">🎚️</span>Thinking effort pass-through</h3><p><code>reasoning_effort</code> → <code>output_config.effort</code> mapping (low / medium / high / max); config defaults apply when unset.</p></div>
-      <div class="card" data-l="zh"><h3><span class="ic">🏷️</span>客户端归因</h3><p>可选 mimic 模式完整镜像 ZCode 归因头与账号 ID，闲时 50% 积分优惠与套餐权益同等生效。</p></div>
-      <div class="card" data-l="en"><h3><span class="ic">🏷️</span>Client attribution</h3><p>Optional mimic mode mirrors the ZCode attribution headers and account ID, so off-peak 50% credit discounts apply equally.</p></div>
-      <div class="card" data-l="zh"><h3><span class="ic">🌐</span>局域网共享</h3><p><code>0.0.0.0</code> 监听 + 访问口令：同网段设备共用一个网关，口令一键轮换。</p></div>
-      <div class="card" data-l="en"><h3><span class="ic">🌐</span>LAN sharing</h3><p><code>0.0.0.0</code> listener with a mandatory access token: share one gateway across devices, rotate the token in one command.</p></div>
-      <div class="card" data-l="zh"><h3><span class="ic">⚡</span>按需启动</h3><p>OMP 解析凭据时自动拉起网关，取口令永不阻塞（≤2s），无需手工常驻服务。</p></div>
-      <div class="card" data-l="en"><h3><span class="ic">⚡</span>On-demand startup</h3><p>OMP starts the gateway automatically when resolving credentials; token resolution never blocks (≤2s).</p></div>
-      <div class="card" data-l="zh"><h3><span class="ic">📦</span>单二进制</h3><p>纯 Go 标准库实现，无第三方依赖；<code>go build</code> 一步产出，交叉编译随意。</p></div>
-      <div class="card" data-l="en"><h3><span class="ic">📦</span>Single binary</h3><p>Pure Go standard library, no third-party dependencies; one <code>go build</code>, cross-compile freely.</p></div>
+      <div class="card" data-l="zh"><h3>OpenAI 完全兼容</h3><p><code>/v1/chat/completions</code>、<code>/v1/models</code>；流式 SSE 与非流式聚合双模式，任意 OpenAI SDK / CLI 零改造接入。</p></div>
+      <div class="card" data-l="en"><h3>OpenAI-compatible</h3><p><code>/v1/chat/completions</code> and <code>/v1/models</code>; streaming SSE and aggregated non-streaming. Any OpenAI SDK/CLI works unchanged.</p></div>
+      <div class="card" data-l="zh"><h3>凭据零搬运</h3><p>只读 ZCode 本机配置取 apiKey，不复制、不改写 App 文件；密钥不落仓库、不进 OMP 配置。</p></div>
+      <div class="card" data-l="en"><h3>Zero credential copying</h3><p>Reads the apiKey from the local ZCode config. No copies, no app-file rewrites; no key in the repo or OMP config.</p></div>
+      <div class="card" data-l="zh"><h3>签名思考回放</h3><p>工具循环自动补回带 <code>signature</code> 的 thinking 块——OpenAI 客户端只回显文本，网关替你记住签名。</p></div>
+      <div class="card" data-l="en"><h3>Signed thinking replay</h3><p>Tool loops automatically get the <code>signature</code>-bearing thinking block re-injected — clients only echo visible text, the gateway remembers signatures for you.</p></div>
+      <div class="card" data-l="zh"><h3>思考档位透传</h3><p><code>reasoning_effort</code> → <code>output_config.effort</code>，low / medium / high / max 映射到上游；未指定时用配置默认。</p></div>
+      <div class="card" data-l="en"><h3>Thinking effort pass-through</h3><p><code>reasoning_effort</code> → <code>output_config.effort</code> mapping (low / medium / high / max); config defaults apply when unset.</p></div>
+      <div class="card" data-l="zh"><h3>客户端归因</h3><p>可选 mimic 模式完整镜像 ZCode 归因头与账号 ID，闲时 50% 积分优惠与套餐权益同等生效。</p></div>
+      <div class="card" data-l="en"><h3>Client attribution</h3><p>Optional mimic mode mirrors the ZCode attribution headers and account ID, so off-peak 50% credit discounts apply equally.</p></div>
+      <div class="card" data-l="zh"><h3>局域网共享</h3><p><code>0.0.0.0</code> 监听 + 访问口令：同网段设备共用一个网关，口令一键轮换。</p></div>
+      <div class="card" data-l="en"><h3>LAN sharing</h3><p><code>0.0.0.0</code> listener with a mandatory access token: share one gateway across devices, rotate the token in one command.</p></div>
+      <div class="card" data-l="zh"><h3>按需启动</h3><p>OMP 解析凭据时自动拉起网关，取口令永不阻塞（≤2s），无需手工常驻服务。</p></div>
+      <div class="card" data-l="en"><h3>On-demand startup</h3><p>OMP starts the gateway automatically when resolving credentials; token resolution never blocks (≤2s).</p></div>
+      <div class="card" data-l="zh"><h3>单二进制</h3><p>纯 Go 标准库实现，无第三方依赖；<code>go build</code> 一步产出，交叉编译随意。</p></div>
+      <div class="card" data-l="en"><h3>Single binary</h3><p>Pure Go standard library, no third-party dependencies; one <code>go build</code>, cross-compile freely.</p></div>
     </div>
   </div>
 </section>
@@ -320,8 +320,8 @@ python3 scripts/omp-gateway.py token    <span class="c"># print access token</sp
 
 <section>
   <div class="wrap">
-    <div class="note" data-l="zh">⚠️ <strong>合规须知</strong>：本项目为非官方网关，将你本人的 ZCode 套餐作为上游，仅限本人账号、本机 / 私有环境自用，请遵守套餐条款；上游接口与权益由服务方控制，可能随时变化。</div>
-    <div class="note" data-l="en">⚠️ <strong>Disclaimer</strong>: unofficial gateway using your own ZCode plan as upstream. Personal, local use only and in line with your plan terms; the upstream API and perks are controlled by the provider and may change at any time.</div>
+    <div class="note" data-l="zh"> <strong>合规须知</strong>：本项目为非官方网关，将你本人的 ZCode 套餐作为上游，仅限本人账号、本机 / 私有环境自用，请遵守套餐条款；上游接口与权益由服务方控制，可能随时变化。</div>
+    <div class="note" data-l="en"> <strong>Disclaimer</strong>: unofficial gateway using your own ZCode plan as upstream. Personal, local use only and in line with your plan terms; the upstream API and perks are controlled by the provider and may change at any time.</div>
   </div>
 </section>
 
