@@ -1,10 +1,12 @@
-# glm-zcode-proxy
+# glm-zcode-2api
+
+> 项目主页 / Project site：<https://binggao1230.github.io/glm-zcode-2api/>
 
 把本机 **Z Code** 账号（BigModel Coding Plan / Z.ai Coding Plan）变成 **OpenAI 兼容 API** 的本地反向代理，供 OMP 等任意 OpenAI 客户端使用。
 
 - 上游是 Anthropic Messages 协议（`https://open.bigmodel.cn/api/anthropic`），本网关对外只暴露 `/v1/chat/completions`、`/v1/models`；
 - 凭据**直接读 Z Code 的配置**（`~/.zcode/v2/config.json`），不复制、不改写 App 文件，密钥不写入 OMP 配置；
-- 默认监听 `0.0.0.0:7864`（局域网可访问），`api_key` 为强制项；密钥由启动器生成，仅存本机 `~/.local/state/glm-zcode-proxy/client.key`（0600）。
+- 默认监听 `0.0.0.0:7864`（局域网可访问），`api_key` 为强制项；密钥由启动器生成，仅存本机 `~/.local/state/glm-zcode-2api/client.key`（0600）。
 
 > ⚠️ 合规须知：本项目是**非官方**网关，使用你本人的 Z Code 账号作为上游，仅限本机 / 私有环境自用。上游接口与配额由腾讯 / 智谱侧控制，可能随时变化。
 
@@ -14,7 +16,7 @@
 flowchart LR
     Client["OMP / 任意 OpenAI 客户端"] --> H
 
-    subgraph GW["glm-zcode-proxy :7864"]
+    subgraph GW["glm-zcode-2api :7864"]
         H["HTTP Handler\n鉴权 · 体积上限"] --> C["协议转换\nOpenAI ⇄ Anthropic"]
         C --> R["签名思考回放缓存"]
         C --> U["上游 Client\nSSE 流式"]
@@ -33,15 +35,15 @@ flowchart LR
 ## 快速开始
 
 ```bash
-cd ~/projects/ai_projects/glm-zcode-proxy
-CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/glm-zcode-proxy ./cmd/server
+cd ~/projects/ai_projects/glm-zcode-2api
+CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/glm-zcode-2api ./cmd/server
 
 # 启动（读取 Z Code 配置、生成客户端密钥、后台常驻）
 python3 scripts/omp-gateway.py start
 
 # 健康检查
 curl -s http://127.0.0.1:7864/healthz
-# {"service":"glm-zcode-proxy","healthy":true,"provider":"builtin:bigmodel-coding-plan","models":2}
+# {"service":"glm-zcode-2api","healthy":true,"provider":"builtin:bigmodel-coding-plan","models":2}
 ```
 
 管理命令：
@@ -71,7 +73,7 @@ curl -sN http://127.0.0.1:7864/v1/chat/completions \
 
 ```bash
 # 本机取密钥
-KEY=$(python3 ~/projects/ai_projects/glm-zcode-proxy/scripts/omp-gateway.py token)
+KEY=$(python3 ~/projects/ai_projects/glm-zcode-2api/scripts/omp-gateway.py token)
 
 # 局域网设备上（示例 IP：192.168.x.x）
 curl -s http://192.168.x.x:7864/healthz
@@ -91,7 +93,7 @@ curl -s http://192.168.x.x:7864/v1/models -H "Authorization: Bearer $KEY"
 要点：
 
 - `/v1/models`、`/v1/chat/completions`、`/status` 都要 `Authorization: Bearer <api_key>`（或 `x-api-key`）；仅 `/healthz` 不鉴权，用于探活。
-- 密钥即账号额度：`~/.local/state/glm-zcode-proxy/client.key` 权限 0600，别贴进聊天或提交到仓库；泄漏就删掉该文件后 `restart` 重新生成。
+- 密钥即账号额度：`~/.local/state/glm-zcode-2api/client.key` 权限 0600，别贴进聊天或提交到仓库；泄漏就删掉该文件后 `restart` 重新生成。
 - 首次从别的设备连接时，macOS 防火墙可能弹出「是否允许传入连接」，需要放行。
 
 ## OMP 接入
@@ -102,7 +104,7 @@ curl -s http://192.168.x.x:7864/v1/models -H "Authorization: Bearer $KEY"
   zcode:
     baseUrl: http://127.0.0.1:7864/v1
     api: openai-completions
-    apiKey: '!/usr/bin/python3 ~/projects/glm-zcode-proxy/scripts/omp-gateway.py token'
+    apiKey: '!/usr/bin/python3 ~/projects/glm-zcode-2api/scripts/omp-gateway.py token'
     authHeader: true
     compat:
       supportsStore: false
@@ -110,13 +112,13 @@ curl -s http://192.168.x.x:7864/v1/models -H "Authorization: Bearer $KEY"
       maxTokensField: max_tokens
     models:
     - id: glm-5.3
-      name: Z Code / GLM-5.3
+      name: ZCode / GLM-5.3
       reasoning: true
       input: [text]
       contextWindow: 1000000
       maxTokens: 128000
     - id: glm-5.3-flash
-      name: Z Code / GLM-5.3-Flash
+      name: ZCode / GLM-5.3-Flash
       reasoning: true
       input: [text, image]
       contextWindow: 1000000
@@ -132,7 +134,7 @@ omp models zcode
 
 ## 配置说明
 
-`config.example.json` 是完整参考；实际运行配置由启动器写入 `~/.local/state/glm-zcode-proxy/config.json`。
+`config.example.json` 是完整参考；实际运行配置由启动器写入 `~/.local/state/glm-zcode-2api/config.json`。
 
 | 字段 | 默认 | 说明 |
 |---|---|---|
@@ -172,7 +174,7 @@ x-request-id / x-zcode-trace-id / x-query-id / x-session-id（每请求生成）
 metadata.user_id: <账号 ID>
 ```
 
-`app_version` 从 `ZCode.app/Contents/Info.plist` 读取，`user_id` 从 Z Code 配置里的套餐 JWT 解出，都不需要手工填。关闭 mimic 后网关只发 `x-api-key`，以自己的身份（`glm-zcode-proxy`）调用上游。
+`app_version` 从 `ZCode.app/Contents/Info.plist` 读取，`user_id` 从 Z Code 配置里的套餐 JWT 解出，都不需要手工填。关闭 mimic 后网关只发 `x-api-key`，以自己的身份（`glm-zcode-2api`）调用上游。
 
 > 说明：mimic 只是让请求与 App 完全一致，**是否享受优惠由上游策略决定**；使用前请自行确认符合你的套餐条款（这也是个人自用网关，不要公开给他人）。
 
@@ -209,7 +211,7 @@ metadata.user_id: <账号 ID>
 ## 目录结构
 
 ```
-glm-zcode-proxy/
+glm-zcode-2api/
 ├── cmd/server/             # 入口：-config 指定配置
 ├── internal/config/        # 配置加载 + Z2A_* 环境覆盖
 ├── internal/credential/    # 只读 Z Code 配置，取 apiKey/baseURL（缓存 + 变更重读）
@@ -219,7 +221,7 @@ glm-zcode-proxy/
 ├── internal/upstream/      # 上游 HTTP 客户端（SSE 解析、空闲看门狗、错误归类）
 ├── internal/server/        # HTTP 路由、鉴权、日志
 ├── scripts/omp-gateway.py  # OMP 启动器：start/stop/status/restart/token
-└── bin/glm-zcode-proxy           # 构建产物
+└── bin/glm-zcode-2api           # 构建产物
 ```
 
 ## 已知限制

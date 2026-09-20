@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>glm-zcode-proxy · 把 Z Code 变成 OpenAI 兼容 API</title>
+<title>glm-zcode-2api · 把 Z Code 变成 OpenAI 兼容 API</title>
 <meta name="description" content="本机反向代理：把 Z Code（BigModel / Z.ai Coding Plan）的 Anthropic 端点包装成 OpenAI 兼容 API，凭据零搬运，工具循环与思考档位完整透传。">
 <style>
   :root{
@@ -87,7 +87,7 @@
       <a href="#arch">架构</a>
       <a href="#start">快速开始</a>
       <a href="#faq">FAQ</a>
-      <a href="https://github.com/binggao1230/glm-zcode-proxy">GitHub</a>
+      <a href="https://github.com/binggao1230/glm-zcode-2api">GitHub</a>
     </nav>
   </div>
 </header>
@@ -105,7 +105,7 @@
     </div>
     <div class="cta">
       <a class="btn primary" href="#start">快速开始</a>
-      <a class="btn ghost" href="https://github.com/binggao1230/glm-zcode-proxy">GitHub 仓库 →</a>
+      <a class="btn ghost" href="https://github.com/binggao1230/glm-zcode-2api">GitHub 仓库 →</a>
     </div>
   </div>
 </div>
@@ -132,7 +132,7 @@
     <div class="diagram">
       <div class="node"><b>OMP / 任意客户端</b><small>OpenAI 协议<br>127.0.0.1:7864 或局域网</small></div>
       <div class="arrow">→</div>
-      <div class="node gw"><b>glm-zcode-proxy 网关</b><small>鉴权 · 体积上限<br>OpenAI ⇄ Anthropic 转换<br>签名思考回放缓存</small></div>
+      <div class="node gw"><b>glm-zcode-2api 网关</b><small>鉴权 · 体积上限<br>OpenAI ⇄ Anthropic 转换<br>签名思考回放缓存</small></div>
       <div class="arrow">→</div>
       <div class="node"><b>BigModel Coding Plan</b><small>open.bigmodel.cn/api/anthropic<br>Anthropic Messages (SSE)</small></div>
     </div>
@@ -150,11 +150,11 @@
     <div class="cols">
       <div class="col">
         <h3>1 · 构建并启动</h3>
-<pre>git clone https://github.com/binggao1230/glm-zcode-proxy
-cd glm-zcode-proxy
+<pre>git clone https://github.com/binggao1230/glm-zcode-2api
+cd glm-zcode-2api
 
 CGO_ENABLED=0 go build -trimpath \
-  -ldflags="-s -w" -o bin/glm-zcode-proxy ./cmd/server
+  -ldflags="-s -w" -o bin/glm-zcode-2api ./cmd/server
 
 <span class="c"># 读取 Z Code 配置、生成访问口令、后台常驻</span>
 python3 scripts/omp-gateway.py start
@@ -183,7 +183,7 @@ zcode:
   baseUrl: http://127.0.0.1:7864/v1
   api: openai-completions
   apiKey: <span class="s">'!/usr/bin/python3
-    ~/projects/glm-zcode-proxy/scripts/omp-gateway.py token'</span>
+    ~/projects/glm-zcode-2api/scripts/omp-gateway.py token'</span>
   authHeader: true
   models:
   - id: glm-5.3-flash
@@ -222,7 +222,7 @@ python3 scripts/omp-gateway.py token    <span class="c"># 打印访问口令</sp
     <h2>FAQ</h2>
     <details open><summary>报 429 / 1310「已达使用上限」？</summary><div class="a">计划配额确实用完了，错误文案原样透传（含重置时间）。等重置后自动恢复；网关不做任何伪装或绕过。</div></details>
     <details><summary>HTTP 401？</summary><div class="a">上游密钥失效——在 Z Code App 里重新登录，然后 <code>python3 scripts/omp-gateway.py restart</code>。网关每次请求前会自动重读 Z Code 配置，多数情况无需重启。</div></details>
-    <details><summary>访问口令是什么？泄漏了怎么办？</summary><div class="a">口令在 <code>~/.local/state/glm-zcode-proxy/client.key</code>（0600），等同账号额度的使用权。泄漏后删除该文件再 <code>restart</code> 即自动轮换，客户端无需改配置。</div></details>
+    <details><summary>访问口令是什么？泄漏了怎么办？</summary><div class="a">口令在 <code>~/.local/state/glm-zcode-2api/client.key</code>（0600），等同账号额度的使用权。泄漏后删除该文件再 <code>restart</code> 即自动轮换，客户端无需改配置。</div></details>
     <details><summary>局域网其他设备怎么用？</summary><div class="a">网关默认监听 <code>0.0.0.0:7864</code>。其他设备把 baseUrl 指到 <code>http://&lt;本机IP&gt;:7864/v1</code>，apiKey 填本机 <code>client.key</code> 内容即可。只要 <code>/healthz</code> 不鉴权，其余接口全部要求口令。</div></details>
     <details><summary>思考能关掉吗？为什么关了还有 reasoning？</summary><div class="a">可以：<code>reasoning_effort: "off"</code> 或配置 <code>thinking.enabled=false</code>，网关发 <code>thinking.type=disabled</code>。实测上游在 disabled 下仍会输出一小段思考，网关如实透传、不做抹除。</div></details>
     <details><summary>支持图片输入吗？</summary><div class="a">已实现 OpenAI <code>image_url</code>（data URL / http(s) URL / base64）到 Anthropic image block 的转换；<code>glm-5.3-flash</code> 声明支持视觉，端到端效果以实际使用为准。</div></details>
@@ -237,8 +237,8 @@ python3 scripts/omp-gateway.py token    <span class="c"># 打印访问口令</sp
 
 <footer>
   <div class="wrap">
-    <div>MIT License · © 2026 glm-zcode-proxy contributors</div>
-    <div><a href="https://github.com/binggao1230/glm-zcode-proxy">GitHub</a> · <a href="https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash">GLM-5.3-Flash 文档</a></div>
+    <div>MIT License · © 2026 glm-zcode-2api contributors</div>
+    <div><a href="https://github.com/binggao1230/glm-zcode-2api">GitHub</a> · <a href="https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash">GLM-5.3-Flash 文档</a></div>
   </div>
 </footer>
 

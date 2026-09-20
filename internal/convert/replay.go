@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"glm-zcode-proxy/internal/anthropic"
-	"glm-zcode-proxy/internal/openai"
+	"glm-zcode-2api/internal/anthropic"
+	"glm-zcode-2api/internal/openai"
 )
 
 // ReplayCache keeps the signed thinking blocks the upstream returned so they

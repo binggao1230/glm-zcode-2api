@@ -23,11 +23,11 @@ import urllib.error
 import urllib.request
 
 REPO = Path(__file__).resolve().parents[1]
-ROOT = Path.home() / ".local/state/glm-zcode-proxy"
+ROOT = Path.home() / ".local/state/glm-zcode-2api"
 ZCODE_CONFIG = Path.home() / ".zcode/v2/config.json"
 BASE = "http://127.0.0.1:7864"
 PORT = 7864
-BINARY = REPO / "bin/glm-zcode-proxy"
+BINARY = REPO / "bin/glm-zcode-2api"
 DEFAULT_PROVIDER = "builtin:bigmodel-coding-plan"
 
 
@@ -51,9 +51,9 @@ def audit(action, **data):
     context_file = ROOT / "active-audit.json"
     if context_file.exists():
         context = json.loads(context_file.read_text())
-        audit_id = context.get("audit_id", "glm-zcode-proxy-local")
+        audit_id = context.get("audit_id", "glm-zcode-2api-local")
     else:
-        audit_id = "glm-zcode-proxy-local"
+        audit_id = "glm-zcode-2api-local"
     record = dict(audit_id=audit_id, action=action,
                   time=datetime.datetime.now(datetime.timezone.utc).isoformat(), **data)
     fd = os.open(ROOT / "audit.jsonl", os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
@@ -80,7 +80,7 @@ def health():
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         with opener.open(request, timeout=2) as response:
             data = json.load(response)
-        return data if data.get("service") == "glm-zcode-proxy" else None
+        return data if data.get("service") == "glm-zcode-2api" else None
     except (OSError, ValueError, urllib.error.URLError):
         return None
 
@@ -208,7 +208,7 @@ def start(wait=True, wait_seconds=40):
             print(json.dumps({"running": True, "pid": pid, "health": health()}))
         return
     if not BINARY.is_file():
-        raise RuntimeError("Build bin/glm-zcode-proxy first")
+        raise RuntimeError("Build bin/glm-zcode-2api first")
     with socket.socket() as probe:
         if probe.connect_ex(("127.0.0.1", PORT)) == 0:
             raise RuntimeError(f"Port {PORT} is already occupied; no process was replaced")

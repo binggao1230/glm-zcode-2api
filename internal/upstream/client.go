@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"glm-zcode-proxy/internal/anthropic"
+	"glm-zcode-2api/internal/anthropic"
 )
 
 // Client is a single-upstream Anthropic Messages client.

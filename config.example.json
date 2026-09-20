@@ -9,7 +9,7 @@
     "provider_id": "builtin:bigmodel-coding-plan",
     "api_key": "",
     "anthropic_version": "2023-06-01",
-    "user_agent": "glm-zcode-proxy/0.1",
+    "user_agent": "glm-zcode-2api/0.1",
     "beta": [],
     "timeout_seconds": 120,
     "header_timeout_seconds": 120,

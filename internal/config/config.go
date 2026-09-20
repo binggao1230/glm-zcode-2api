@@ -74,7 +74,7 @@ func Default() *Config {
 		Upstream: Upstream{
 			ProviderID:           "builtin:bigmodel-coding-plan",
 			AnthropicVersion:     "2023-06-01",
-			UserAgent:            "glm-zcode-proxy/0.1",
+			UserAgent:            "glm-zcode-2api/0.1",
 			TimeoutSeconds:       120,
 			HeaderTimeoutSeconds: 120,
 			IdleTimeoutSeconds:   300,

@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"glm-zcode-proxy/internal/config"
-	"glm-zcode-proxy/internal/server"
+	"glm-zcode-2api/internal/config"
+	"glm-zcode-2api/internal/server"
 )
 
 func main() {

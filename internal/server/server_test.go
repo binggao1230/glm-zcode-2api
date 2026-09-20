@@ -13,7 +13,7 @@ import (
 	"sync"
 	"testing"
 
-	"glm-zcode-proxy/internal/config"
+	"glm-zcode-2api/internal/config"
 )
 
 type capture struct {
@@ -384,7 +384,7 @@ func TestModelsHealthAndUnknownModel(t *testing.T) {
 
 	rec = httptest.NewRecorder()
 	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
-	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"service":"glm-zcode-proxy"`) {
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"service":"glm-zcode-2api"`) {
 		t.Fatalf("healthz: %d %s", rec.Code, rec.Body.String())
 	}
 
@@ -403,7 +403,7 @@ func TestHealthReportsMissingCredential(t *testing.T) {
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
 	}
-	if !strings.Contains(rec.Body.String(), `"service":"glm-zcode-proxy"`) {
+	if !strings.Contains(rec.Body.String(), `"service":"glm-zcode-2api"`) {
 		t.Fatalf("health payload must identify the service: %s", rec.Body.String())
 	}
 }

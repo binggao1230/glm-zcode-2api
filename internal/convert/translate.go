@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"glm-zcode-proxy/internal/anthropic"
-	"glm-zcode-proxy/internal/openai"
+	"glm-zcode-2api/internal/anthropic"
+	"glm-zcode-2api/internal/openai"
 )
 
 // toolState accumulates one upstream tool_use block.

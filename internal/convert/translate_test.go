@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"glm-zcode-proxy/internal/anthropic"
-	"glm-zcode-proxy/internal/openai"
+	"glm-zcode-2api/internal/anthropic"
+	"glm-zcode-2api/internal/openai"
 )
 
 func event(t *testing.T, payload string) anthropic.Event {

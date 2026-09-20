@@ -16,16 +16,16 @@ import (
 	"syscall"
 	"time"
 
-	"glm-zcode-proxy/internal/anthropic"
-	"glm-zcode-proxy/internal/config"
-	"glm-zcode-proxy/internal/convert"
-	"glm-zcode-proxy/internal/credential"
-	"glm-zcode-proxy/internal/openai"
-	"glm-zcode-proxy/internal/upstream"
+	"glm-zcode-2api/internal/anthropic"
+	"glm-zcode-2api/internal/config"
+	"glm-zcode-2api/internal/convert"
+	"glm-zcode-2api/internal/credential"
+	"glm-zcode-2api/internal/openai"
+	"glm-zcode-2api/internal/upstream"
 )
 
 // Service identifies this gateway in health responses.
-const Service = "glm-zcode-proxy"
+const Service = "glm-zcode-2api"
 
 type Server struct {
 	cfg      *config.Config
@@ -450,7 +450,7 @@ func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
 			key = r.Header.Get("x-api-key")
 		}
 		if subtle.ConstantTimeCompare([]byte(key), []byte(s.cfg.APIKey)) != 1 {
-			w.Header().Set("WWW-Authenticate", `Bearer realm="glm-zcode-proxy"`)
+			w.Header().Set("WWW-Authenticate", `Bearer realm="glm-zcode-2api"`)
 			writeError(w, http.StatusUnauthorized, "authentication_error", "invalid or missing API key", nil)
 			return
 		}

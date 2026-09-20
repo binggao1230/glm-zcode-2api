@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"strings"
 
-	"glm-zcode-proxy/internal/anthropic"
-	"glm-zcode-proxy/internal/openai"
+	"glm-zcode-2api/internal/anthropic"
+	"glm-zcode-2api/internal/openai"
 )
 
 // Options controls request shaping.
