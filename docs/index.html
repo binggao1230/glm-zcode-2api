@@ -55,13 +55,23 @@
   .node.gw{border-color:#2b3b52;background:linear-gradient(180deg,#131c28,#101720);min-width:260px}
   .arrow{color:var(--accent);font-size:20px;font-family:var(--mono)}
   .arrow.dash{color:#41506a}
-  .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  @media(max-width:760px){.cols{grid-template-columns:1fr}}
   pre{background:#0a0e13;border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.75;color:#c9d6e4}
   pre .c{color:#5c6b7a}
   pre .p{color:#3fb950;user-select:none}
-  .col h3{font-size:15px;color:var(--muted);font-weight:600;margin-bottom:10px;text-transform:uppercase;letter-spacing:.6px}
   .chips{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;gap:8px;flex-wrap:wrap;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+  .step{margin-bottom:26px}
+  .step h3{font-size:15.5px;color:var(--text);font-weight:600;margin-bottom:10px}
+  .step .hint{color:var(--muted);font-size:13.5px;margin:0 0 10px}
+  .step pre{margin:0}
+  .prompt{position:relative;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:12px;padding:16px 18px}
+  .prompt-text{color:var(--text);font-size:14.5px;line-height:1.8;margin:0}
+  .copy{position:absolute;top:10px;right:10px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--muted);font:inherit;font-size:12.5px;padding:5px 12px;cursor:pointer}
+  .copy:hover{border-color:var(--accent);color:var(--text)}
+  pre .tok-c{color:#5c6b7a}
+  pre .tok-s{color:#a5c8ff}
+  pre .tok-k{color:#8bd5a0}
+  pre .tok-f{color:#d2b48c}
+  pre .tok-b{color:#7ee2a8}
   footer{border-top:1px solid var(--line);padding:34px 0 44px;color:var(--muted);font-size:13.5px}
   footer .wrap{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap}
   @media(max-width:640px){.hero h1{font-size:33px}section{padding:42px 0}}
@@ -112,71 +122,86 @@
 <section id="start" class="alt">
   <div class="wrap">
     <h2 data-l="zh">快速开始</h2><h2 data-l="en">Quick Start</h2>
-    <p style="color:var(--muted);font-size:13.5px;margin:-10px 0 20px" data-l="zh">前置条件：本机已登录 ZCode 桌面版 · Go ≥ 1.22（构建）· Python 3（启动器）</p>
-    <p style="color:var(--muted);font-size:13.5px;margin:-10px 0 20px" data-l="en">Prerequisites: ZCode desktop signed in · Go ≥ 1.22 (build) · Python 3 (launcher)</p>
-    <div class="cols">
-      <div class="col" data-l="zh">
-        <h3>1 · 安装并启动</h3>
-<pre>git clone https://github.com/binggao1230/glm-zcode-2api
-cd glm-zcode-2api
 
-CGO_ENABLED=0 go build -trimpath \
-  -ldflags="-s -w" -o bin/glm-zcode-2api ./cmd/server
-
-<span class="c"># 读取 ZCode 配置、生成访问口令、后台常驻</span>
-python3 scripts/omp-gateway.py start
-
-curl -s http://127.0.0.1:7864/healthz
-<span class="c"># {"service":"glm-zcode-2api","healthy":true,...}</span></pre>
-      </div>
-      <div class="col" data-l="en">
-        <h3>1 · Install &amp; run</h3>
-<pre>git clone https://github.com/binggao1230/glm-zcode-2api
-cd glm-zcode-2api
-
-CGO_ENABLED=0 go build -trimpath \
-  -ldflags="-s -w" -o bin/glm-zcode-2api ./cmd/server
-
-<span class="c"># reads the ZCode config, mints the token, daemonizes</span>
-python3 scripts/omp-gateway.py start
-
-curl -s http://127.0.0.1:7864/healthz
-<span class="c"># {"service":"glm-zcode-2api","healthy":true,...}</span></pre>
+    <div class="step" data-l="zh">
+      <h3>0 · 交给 AI（推荐）</h3>
+      <p class="hint">把下面这段话复制后发给任何 AI 编码代理（OMP / Claude Code / Cursor 等），它会自动完成安装、启动与 OMP 接入：</p>
+      <div class="prompt">
+        <p class="prompt-text">请阅读 https://github.com/binggao1230/glm-zcode-2api/blob/main/AI_SETUP.md —— 这是 glm-zcode-2api 的自动安装与配置文档，glm-zcode-2api 是一个把本机 ZCode 订阅变成 OpenAI 兼容 API 的网关。请严格按文档执行：克隆并构建项目、启动网关、验证健康状态、把它接入 OMP（oh-my-pi），最后用 omp models zcode 和 omp --model zcode/glm-5.3-flash 验收，并逐步报告每一步的结果。过程中不得提交或打印任何真实凭据。</p>
+        <button class="copy" onclick="copyPrompt(this)" data-done="已复制">复制提示词</button>
       </div>
     </div>
-    <div class="cols" style="margin-top:16px">
-      <div class="col" data-l="zh">
-        <h3>2 · 验证</h3>
-<pre>KEY=$(python3 scripts/omp-gateway.py token)
+
+    <div class="step" data-l="en">
+      <h3>0 · Let an AI do it (recommended)</h3>
+      <p class="hint">Copy the paragraph below into any AI coding agent (OMP / Claude Code / Cursor etc.) — it installs, starts and wires everything into OMP:</p>
+      <div class="prompt">
+        <p class="prompt-text">Read https://github.com/binggao1230/glm-zcode-2api/blob/main/AI_SETUP.md — it is the install &amp; configuration doc for glm-zcode-2api, a gateway that turns a local ZCode plan into an OpenAI-compatible API. Follow it exactly: clone and build the project, start the gateway, verify its health, integrate it into OMP (oh-my-pi), then verify with omp models zcode and omp --model zcode/glm-5.3-flash, reporting each step's result along the way. Never commit or print real credentials.</p>
+        <button class="copy" onclick="copyPrompt(this)" data-done="Copied">Copy prompt</button>
+      </div>
+    </div>
+
+    <div class="step" data-l="zh">
+      <h3>1 · 安装并启动</h3>
+      <p class="hint">前置条件：本机已登录 ZCode 桌面版 · Go ≥ 1.22（构建）· Python 3（启动器）</p>
+<pre data-lang="bash">git clone https://github.com/binggao1230/glm-zcode-2api
+cd glm-zcode-2api
+
+CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/glm-zcode-2api ./cmd/server
+
+# 读取 ZCode 配置、生成访问口令、后台常驻
+python3 scripts/omp-gateway.py start
+
+curl -s http://127.0.0.1:7864/healthz
+# {"service":"glm-zcode-2api","healthy":true,...}</pre>
+    </div>
+
+    <div class="step" data-l="en">
+      <h3>1 · Install &amp; run</h3>
+      <p class="hint">Prerequisites: ZCode desktop signed in · Go ≥ 1.22 (build) · Python 3 (launcher)</p>
+<pre data-lang="bash">git clone https://github.com/binggao1230/glm-zcode-2api
+cd glm-zcode-2api
+
+CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/glm-zcode-2api ./cmd/server
+
+# reads the ZCode config, mints the token, daemonizes
+python3 scripts/omp-gateway.py start
+
+curl -s http://127.0.0.1:7864/healthz
+# {"service":"glm-zcode-2api","healthy":true,...}</pre>
+    </div>
+
+    <div class="step" data-l="zh">
+      <h3>2 · 验证</h3>
+<pre data-lang="bash">KEY=$(python3 scripts/omp-gateway.py token)
 
 curl -sN http://127.0.0.1:7864/v1/chat/completions \
-  -H "Authorization: Bearer $KEY" \
-  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d '{"model":"&lt;套餐内模型&gt;","messages":[{"role":"user","content":"hi"}],"stream":true}'
 
 data: {"choices":[{"delta":{"reasoning_content":"…"}}]}
 data: {"choices":[{"delta":{"content":"你好！"}}]}
 data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
 data: [DONE]</pre>
-      </div>
-      <div class="col" data-l="en">
-        <h3>2 · Verify</h3>
-<pre>KEY=$(python3 scripts/omp-gateway.py token)
+    </div>
+
+    <div class="step" data-l="en">
+      <h3>2 · Verify</h3>
+<pre data-lang="bash">KEY=$(python3 scripts/omp-gateway.py token)
 
 curl -sN http://127.0.0.1:7864/v1/chat/completions \
-  -H "Authorization: Bearer $KEY" \
-  -H 'Content-Type: application/json' \
+  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d '{"model":"&lt;a model from your plan&gt;","messages":[{"role":"user","content":"hi"}],"stream":true}'
 
 data: {"choices":[{"delta":{"reasoning_content":"…"}}]}
 data: {"choices":[{"delta":{"content":"Hi there!"}}]}
 data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
 data: [DONE]</pre>
-      </div>
     </div>
-    <div class="col" style="margin-top:16px" data-l="zh">
+
+    <div class="step" data-l="zh">
       <h3>3 · 接入 OMP（oh-my-pi）</h3>
-<pre><span class="c"># ~/.omp/agent/models.yml</span>
+<pre data-lang="yaml"># ~/.omp/agent/models.yml
 zcode:
   baseUrl: http://127.0.0.1:7864/v1
   api: openai-completions
@@ -187,18 +212,19 @@ zcode:
     supportsDeveloperRole: false
     maxTokensField: max_tokens
   models:
-  <span class="c"># 模型以套餐实际提供为准，按需增删</span>
+  # 模型以套餐实际提供为准，按需增删
   - id: glm-5.3
     name: ZCode / GLM-5.3
     reasoning: true
     input: [text]
     contextWindow: 1000000
     maxTokens: 128000</pre>
-      <p style="color:var(--muted);font-size:13.5px;margin-top:10px"><code>apiKey</code> 指向取口令命令而非固定密钥——OMP 解析该 provider 时若网关未运行会自动拉起（≤2s），无需常驻。</p>
+      <p class="hint"><code>apiKey</code> 指向取口令命令而非固定密钥——OMP 解析该 provider 时若网关未运行会自动拉起（≤2s），无需常驻。</p>
     </div>
-    <div class="col" style="margin-top:16px" data-l="en">
+
+    <div class="step" data-l="en">
       <h3>3 · Wire up OMP (oh-my-pi)</h3>
-<pre><span class="c"># ~/.omp/agent/models.yml</span>
+<pre data-lang="yaml"># ~/.omp/agent/models.yml
 zcode:
   baseUrl: http://127.0.0.1:7864/v1
   api: openai-completions
@@ -209,30 +235,30 @@ zcode:
     supportsDeveloperRole: false
     maxTokensField: max_tokens
   models:
-  <span class="c"># list the models your plan actually provides</span>
+  # list the models your plan actually provides
   - id: glm-5.3
     name: ZCode / GLM-5.3
     reasoning: true
     input: [text]
     contextWindow: 1000000
     maxTokens: 128000</pre>
-      <p style="color:var(--muted);font-size:13.5px;margin-top:10px"><code>apiKey</code> points at the token-printing command, not a fixed secret — OMP starts the gateway on demand (≤2s) when resolving this provider; no daemon required.</p>
+      <p class="hint"><code>apiKey</code> points at the token-printing command, not a fixed secret — OMP starts the gateway on demand (≤2s) when resolving this provider; no daemon required.</p>
     </div>
-    <div class="cols" style="margin-top:16px">
-      <div class="col" data-l="zh">
-        <h3>管理命令</h3>
-<pre>python3 scripts/omp-gateway.py status   <span class="c"># 运行状态</span>
-python3 scripts/omp-gateway.py restart  <span class="c"># 重新登录后同步</span>
+
+    <div class="step" data-l="zh">
+      <h3>管理命令</h3>
+<pre data-lang="bash">python3 scripts/omp-gateway.py status    # 运行状态 + health
+python3 scripts/omp-gateway.py restart   # 重新登录 ZCode / 切换套餐后同步
 python3 scripts/omp-gateway.py stop
-python3 scripts/omp-gateway.py token    <span class="c"># 打印访问口令</span></pre>
-      </div>
-      <div class="col" data-l="en">
-        <h3>Management commands</h3>
-<pre>python3 scripts/omp-gateway.py status   <span class="c"># runtime status</span>
-python3 scripts/omp-gateway.py restart  <span class="c"># after re-login</span>
+python3 scripts/omp-gateway.py token     # 打印访问口令</pre>
+    </div>
+
+    <div class="step" data-l="en">
+      <h3>Management commands</h3>
+<pre data-lang="bash">python3 scripts/omp-gateway.py status    # runtime status + health
+python3 scripts/omp-gateway.py restart   # after re-logging into ZCode
 python3 scripts/omp-gateway.py stop
-python3 scripts/omp-gateway.py token    <span class="c"># print the access token</span></pre>
-      </div>
+python3 scripts/omp-gateway.py token     # print the access token</pre>
     </div>
   </div>
 </section>
@@ -287,6 +313,42 @@ python3 scripts/omp-gateway.py token    <span class="c"># print the access token
 
 <script>
   var LANG_KEY = 'z2a-lang-v2'; // new key: old visitors' stored 'zh' must not override the EN default
+  function highlight(root){
+    const esc = (t) => t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    root.querySelectorAll('pre[data-lang]').forEach(function(pre){
+      const lang = pre.dataset.lang;
+      let src = esc(pre.textContent);
+      const stash = [], keep = (html) => '\u0000' + (stash.push(html) - 1) + '\u0000';
+      src = src.replace(/'[^'\n]*'|"[^"\n]*"/g, (m) => keep('<span class="tok-s">' + m + '</span>'));
+      src = src.replace(/(^|\s)(#[^\n]*)/g, (m, a, b) => a + keep('<span class="tok-c">' + b + '</span>'));
+      if (lang === 'yaml') {
+        src = src.replace(/^([ \t-]*)([A-Za-z0-9_./-]+)(:)/gm, (m, a, b, c) => a + keep('<span class="tok-k">' + b + '</span>') + c);
+      } else {
+        src = src.replace(/(\s)(--?[A-Za-z][\w-]*)/g, (m, a, b) => a + keep('<span class="tok-f">' + b + '</span>'));
+        src = src.replace(/^([ \t]*)([A-Za-z][\w.-]*)/gm, (m, a, b) => a + keep('<span class="tok-b">' + b + '</span>'));
+      }
+      pre.innerHTML = src.replace(/\u0000(\d+)\u0000/g, (m, i) => stash[+i]);
+    });
+  }
+  function copyPrompt(btn){
+    const text = btn.closest('.prompt').querySelector('.prompt-text').textContent.trim();
+    const done = () => {
+      const label = btn.dataset.done || 'Copied';
+      const old = btn.textContent;
+      btn.textContent = label;
+      setTimeout(() => { btn.textContent = old; }, 1600);
+    };
+    const fallback = () => {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      ta.remove(); done();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else { fallback(); }
+  }
   function setLang(l){
     document.documentElement.dataset.lang = l;
     try{ localStorage.setItem(LANG_KEY, l); }catch(e){}
@@ -298,6 +360,7 @@ python3 scripts/omp-gateway.py token    <span class="c"># print the access token
     var saved = 'en';
     try{ saved = localStorage.getItem(LANG_KEY) || 'en'; }catch(e){}
     setLang(saved);
+    highlight(document);
   })();
 </script>
 
