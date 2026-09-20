@@ -69,6 +69,9 @@ func newGateway(t *testing.T, upstreamURL string) http.Handler {
 	cfg := config.Default()
 	cfg.APIKey = "local-key"
 	cfg.Upstream.CredentialConfigPath = zcodeConfig
+	cfg.Upstream.MimicClient = true
+	cfg.Upstream.AppVersion = "3.14.0"
+	cfg.Upstream.UserID = "1234567890123456"
 	return New(cfg, log.New(io.Discard, "", 0)).Handler()
 }
 
@@ -243,6 +246,19 @@ func TestStreamingChat(t *testing.T) {
 	body, headers := rec.last(t)
 	if headers.Get("x-api-key") != "upstream-key" || headers.Get("anthropic-version") == "" {
 		t.Fatalf("upstream auth headers missing: %+v", headers)
+	}
+	if got := headers.Get("user-agent"); got != "ZCode/3.14.0" {
+		t.Fatalf("mimic user-agent = %q", got)
+	}
+	if headers.Get("x-zcode-agent") != "glm" || headers.Get("http-referer") != "https://zcode.z.ai" {
+		t.Fatalf("attribution headers missing: %+v", headers)
+	}
+	if headers.Get("x-request-id") == "" || headers.Get("x-session-id") == "" {
+		t.Fatalf("generated request ids missing: %+v", headers)
+	}
+	metadata, _ := body["metadata"].(map[string]any)
+	if metadata["user_id"] != "1234567890123456" {
+		t.Fatalf("account user_id not sent: %+v", body["metadata"])
 	}
 	if body["stream"] != true || body["model"] != "GLM-5.3" {
 		t.Fatalf("upstream request body: %+v", body)

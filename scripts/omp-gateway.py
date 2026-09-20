@@ -105,6 +105,21 @@ def select_provider(document):
     return preferred, entry
 
 
+def app_version():
+    """Read the installed Z Code version; fall back to a recent known one."""
+    plist = Path("/Applications/ZCode.app/Contents/Info.plist")
+    try:
+        import plistlib
+        with plist.open("rb") as handle:
+            data = plistlib.load(handle)
+        version = str(data.get("CFBundleShortVersionString") or "")
+        if version:
+            return version
+    except (OSError, ValueError, ImportError):
+        pass
+    return "3.14.0"
+
+
 def models_from_provider(entry):
     models = []
     for model_id, spec in (entry.get("models") or {}).items():
@@ -123,6 +138,24 @@ def models_from_provider(entry):
     return models
 
 
+def account_user_id(document):
+    """Recover the Zhipu account id from any plan JWT in the Z Code config."""
+    import base64
+    for entry in (document.get("provider") or {}).values():
+        candidate = ((entry.get("options") or {}).get("apiKey") or "")
+        if candidate.count(".") != 2:
+            continue
+        middle = candidate.split(".")[1]
+        try:
+            claims = json.loads(base64.urlsafe_b64decode(middle + "=" * (-len(middle) % 4)))
+        except (ValueError, json.JSONDecodeError):
+            continue
+        user_id = claims.get("user_id")
+        if user_id:
+            return str(user_id)
+    return None
+
+
 def prepare():
     try:
         document = json.loads(ZCODE_CONFIG.read_text())
@@ -138,24 +171,32 @@ def prepare():
     if len(key) < 32:
         raise RuntimeError("invalid local client key")
 
+    user_id = account_user_id(document)
+    upstream_config = {
+        "provider_id": provider_id,
+        "credential_config_path": str(ZCODE_CONFIG),
+        "anthropic_version": "2023-06-01",
+        # Identify proxied requests as the Z Code client so plan promotions
+        # (off-peak discounts, free flash windows) apply the same way.
+        "mimic_client": True,
+        "app_version": app_version(),
+        "timeout_seconds": 120,
+        "header_timeout_seconds": 120,
+        "idle_timeout_seconds": 300,
+    }
+    if user_id:
+        upstream_config["user_id"] = user_id
+
     config = {
         "listen": f"0.0.0.0:{PORT}",
         "api_key": key,
         "server": {"max_body_mb": 16},
-        "upstream": {
-            "provider_id": provider_id,
-            "credential_config_path": str(ZCODE_CONFIG),
-            "anthropic_version": "2023-06-01",
-            "user_agent": "glm-zcode-proxy-omp/0.1",
-            "timeout_seconds": 120,
-            "header_timeout_seconds": 120,
-            "idle_timeout_seconds": 300,
-        },
+        "upstream": upstream_config,
         "thinking": {"enabled": True, "effort": "max", "prompt_cache": True},
         "models": models,
     }
     audit("prepare_gateway_config", source=str(ZCODE_CONFIG), provider=provider_id,
-          models=[m["id"] for m in models], credential_copied=False)
+          models=[m["id"] for m in models], credential_copied=False, user_id=user_id)
     secure_write(ROOT / "config.json", json.dumps(config, indent=2) + "\n")
     return [m["id"] for m in models]
 

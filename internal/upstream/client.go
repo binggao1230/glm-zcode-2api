@@ -19,11 +19,13 @@ import (
 
 // Client is a single-upstream Anthropic Messages client.
 type Client struct {
-	BaseURL       string
-	APIKey        string
-	APIVersion    string
-	UserAgent     string
-	Beta          []string
+	BaseURL    string
+	APIKey     string
+	APIVersion string
+	UserAgent  string
+	Beta       []string
+	// Headers are sent verbatim on every request (client attribution etc).
+	Headers       map[string]string
 	IdleTimeout   time.Duration
 	HeaderTimeout time.Duration
 	HTTP          *http.Client
@@ -85,6 +87,11 @@ func (c *Client) Messages(ctx context.Context, req *anthropic.Request, handlers 
 	httpReq.Header.Set("anthropic-version", version)
 	if c.UserAgent != "" {
 		httpReq.Header.Set("user-agent", c.UserAgent)
+	}
+	for name, value := range c.Headers {
+		if name != "" && value != "" {
+			httpReq.Header.Set(name, value)
+		}
 	}
 	if len(c.Beta) > 0 {
 		httpReq.Header.Set("anthropic-beta", strings.Join(c.Beta, ","))

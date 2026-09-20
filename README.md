@@ -144,6 +144,9 @@ omp models zcode
 | `upstream.base_url` / `api_key` | 空 | 非空则覆盖从 Z Code 读到的值 |
 | `upstream.header_timeout_seconds` | `120` | 等上游响应头上限 |
 | `upstream.idle_timeout_seconds` | `300` | 流中空闲上限（静默断流） |
+| `upstream.mimic_client` | 启动器写 `true` | 以 Z Code 客户端身份发送归因头（见下节）；代码默认 `false` |
+| `upstream.app_version` | 读取 App 实际版本 | 归因头里的 `ZCode/<version>`（如 `3.14.1`） |
+| `upstream.user_id` | 从套餐 JWT 提取 | 随请求发送的 `metadata.user_id`（账号 ID） |
 | `thinking.enabled` | `true` | 默认是否发送 `thinking.type=enabled` |
 | `thinking.effort` | `max` | 默认档位 `low` \| `medium` \| `high` \| `max`（对齐 Z Code 默认档） |
 | `thinking.prompt_cache` | `true` | 给 system 打 prompt cache 断点 |
@@ -152,6 +155,27 @@ omp models zcode
 **思考档位由客户端覆盖配置**：请求带 `reasoning_effort`（OMP 的 `--thinking` 即走此字段）或 `reasoning.effort` 时以客户端为准；`minimal`→`low`、`xhigh`→`max`，`off`/`none`/`disabled` 或 `thinking.type=disabled` 则关闭（发送 `thinking.type=disabled`，实测上游仍会输出一小段 thinking，网关如实透传）。未指定时用上表默认值。
 
 环境变量覆盖（非空才生效）：`Z2A_LISTEN`、`Z2A_API_KEY`、`Z2A_UPSTREAM_BASE_URL`、`Z2A_UPSTREAM_PROVIDER_ID`、`Z2A_UPSTREAM_API_KEY`、`Z2A_CREDENTIAL_CONFIG_PATH`、`Z2A_USER_AGENT`、`Z2A_MAX_BODY_MB`、`Z2A_THINKING_ENABLED`、`Z2A_THINKING_EFFORT`、`Z2A_IDLE_TIMEOUT_SECONDS`。启动器会过滤掉这些变量，避免环境意外改变上游目的地。
+
+## 闲时优惠与请求归因
+
+新版 GLM Coding Plan 按积分计费，**非高峰时段（含周末全天）的调用只消耗 50% 标准积分**（[官方说明](https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash)）。这类优惠和「Z Code 内使用」的判定依赖**客户端归因**：Z Code App 在模型请求上携带一整套标识头，裸的第三方请求没有这套身份，服务端按普通调用记账。
+
+网关的 `upstream.mimic_client`（启动器默认开启）会把这些头按 App 的实际取值原样发出：
+
+```
+user-agent: ZCode/<App 版本>        http-referer: https://zcode.z.ai
+x-zcode-agent: glm                  x-zcode-app-version / x-title / x-release-channel
+x-platform: darwin-arm64            x-os-category / x-os-version（内核版本）
+x-client-language / x-client-timezone（本机 IANA 时区）
+x-request-id / x-zcode-trace-id / x-query-id / x-session-id（每请求生成）
+metadata.user_id: <账号 ID>
+```
+
+`app_version` 从 `ZCode.app/Contents/Info.plist` 读取，`user_id` 从 Z Code 配置里的套餐 JWT 解出，都不需要手工填。关闭 mimic 后网关只发 `x-api-key`，以自己的身份（`glm-zcode-proxy`）调用上游。
+
+> 说明：mimic 只是让请求与 App 完全一致，**是否享受优惠由上游策略决定**；使用前请自行确认符合你的套餐条款（这也是个人自用网关，不要公开给他人）。
+
+验证方法：在闲时窗口内用 `glm-5.3-flash` 跑几轮，然后对比 Z Code 用量页 / 上游账单的数字是否按 50% 计（关闭 mimic 跑同样的量作对照）。
 
 ## 错误语义
 
@@ -179,6 +203,7 @@ omp models zcode
 | OMP 按需启动 | 停止网关后直接调用 OMP，网关被自动拉起并完成转发 |
 | 监听范围 | `lsof` 显示 `*:7864 (LISTEN)`，经 `192.168.x.x:7864` 访问可用（无密钥 401、带密钥 200、真实请求已转发上游） |
 | 上游字段探测 | 缺字段→400、假模型→400、任意 `effort` 字符串→200、`thinking.type=disabled`→200 |
+| 归因头回显验证 | 本地回显服务实测出站头与 App 一致：`ZCode/3.14.1`、`http-referer`、`x-zcode-agent: glm`、`x-os-version: 27.0.0`、`x-client-timezone: Europe/Paris`、4 个每请求 UUID；`metadata.user_id` 已带 |
 
 ## 目录结构
 

@@ -31,7 +31,13 @@ type Upstream struct {
 	ProviderID string `json:"provider_id"`
 	APIKey     string `json:"api_key"`
 	// CredentialConfigPath overrides the Z Code provider configuration path.
-	CredentialConfigPath string   `json:"credential_config_path"`
+	CredentialConfigPath string `json:"credential_config_path"`
+	// MimicClient sends the Z Code client's attribution headers so that plan
+	// promotions (off-peak discounts, free flash windows) apply to proxied
+	// requests the same way they do inside the app.
+	MimicClient          bool     `json:"mimic_client"`
+	AppVersion           string   `json:"app_version"`
+	UserID               string   `json:"user_id"`
 	AnthropicVersion     string   `json:"anthropic_version"`
 	UserAgent            string   `json:"user_agent"`
 	Beta                 []string `json:"beta"`

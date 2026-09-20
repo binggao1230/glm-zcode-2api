@@ -3,13 +3,17 @@ package server
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"glm-zcode-proxy/internal/anthropic"
@@ -161,6 +165,7 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 		ThinkingEffort:   s.cfg.Thinking.Effort,
 		PromptCache:      s.cfg.Thinking.PromptCache,
 		Replay:           s.replay,
+		UserID:           s.cfg.Upstream.UserID,
 	})
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request_error", err.Error(), nil)
@@ -287,7 +292,89 @@ func (s *Server) clientFor(cred credential.Credential) *upstream.Client {
 	if client.APIKey == "" {
 		client.APIKey = cred.APIKey
 	}
+	if s.cfg.Upstream.MimicClient {
+		client.Headers = mimicHeaders(s.cfg.Upstream.AppVersion)
+		client.UserAgent = client.Headers["user-agent"]
+	}
 	return &client
+}
+
+// mimicHeaders mirrors the attribution header set the Z Code app itself sends
+// on model requests, so the upstream applies the same plan treatment
+// (off-peak discounts, free flash windows) as it does for the app.
+func mimicHeaders(appVersion string) map[string]string {
+	if appVersion == "" {
+		appVersion = "3.14.0"
+	}
+	return map[string]string{
+		"http-referer":         "https://zcode.z.ai",
+		"user-agent":           "ZCode/" + appVersion,
+		"x-zcode-app-version":  appVersion,
+		"x-title":              "Z Code@electron",
+		"x-release-channel":    "production",
+		"x-client-language":    "en-US",
+		"x-client-timezone":    currentTimeZone(),
+		"x-zcode-agent":        "glm",
+		"x-platform":           runtime.GOOS + "-" + runtime.GOARCH,
+		"x-os-category":        osCategory(),
+		"x-os-version":         osVersion(),
+		"x-zcode-session-type": "main",
+		"x-request-id":         newUUID(),
+		"x-zcode-trace-id":     newUUID(),
+		"x-query-id":           newUUID(),
+		"x-session-id":         newUUID(),
+	}
+}
+
+func currentTimeZone() string {
+	// The app reports the IANA zone name; the off-peak window may be resolved
+	// against it, so mirror the real zone rather than the Go zone label.
+	if data, err := os.ReadFile("/etc/localtime"); err == nil && len(data) > 0 {
+		if target, err := os.Readlink("/etc/localtime"); err == nil {
+			if idx := strings.Index(target, "zoneinfo/"); idx >= 0 {
+				return target[idx+len("zoneinfo/"):]
+			}
+		}
+	}
+	if name := os.Getenv("TZ"); name != "" {
+		return name
+	}
+	if name := time.Local.String(); name != "" && !strings.Contains(name, "Local") {
+		return name
+	}
+	return "UTC"
+}
+
+func osCategory() string {
+	switch runtime.GOOS {
+	case "darwin":
+		return "macos"
+	case "windows":
+		return "windows"
+	default:
+		return runtime.GOOS
+	}
+}
+
+func osVersion() string {
+	// The app reports the kernel release (e.g. "27.0.0" on macOS).
+	if runtime.GOOS == "darwin" {
+		if version, err := syscall.Sysctl("kern.osrelease"); err == nil && version != "" {
+			return version
+		}
+	}
+	return "0.0"
+}
+
+func newUUID() string {
+	var buf [16]byte
+	if _, err := rand.Read(buf[:]); err != nil {
+		return fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+	// Format as a UUID so the values look like the app's.
+	buf[6] = (buf[6] & 0x0f) | 0x40
+	buf[8] = (buf[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", buf[0:4], buf[4:6], buf[6:8], buf[8:10], buf[10:16])
 }
 
 func (s *Server) storeReplay(t *convert.Translator) {

@@ -21,6 +21,9 @@ type Options struct {
 	ThinkingEffort   string
 	PromptCache      bool
 	Replay           *ReplayCache
+	// UserID is the account identifier sent as metadata.user_id when the
+	// client does not provide one; mirrors what the Z Code app sends.
+	UserID string
 }
 
 // maxCacheBreakpoints is the Anthropic limit for explicit cache breakpoints.
@@ -68,8 +71,8 @@ func Request(req *openai.ChatRequest, upstreamModel string, opts Options) (*anth
 	out.Temperature = req.Temperature
 	out.TopP = req.TopP
 	out.StopSequences = stopSequences(req.Stop)
-	if userID := userID(req); userID != "" {
-		out.Metadata = map[string]any{"user_id": userID}
+	if id := userID(req, opts.UserID); id != "" {
+		out.Metadata = map[string]any{"user_id": id}
 	}
 	if enabled, effort := resolveThinking(req, opts); enabled {
 		out.Thinking = map[string]any{"type": "enabled"}
@@ -162,14 +165,14 @@ func maxTokens(req *openai.ChatRequest, opts Options) int {
 	}
 }
 
-func userID(req *openai.ChatRequest) string {
+func userID(req *openai.ChatRequest, fallback string) string {
 	if req.User != "" {
 		return req.User
 	}
-	if v, ok := req.Metadata["user_id"].(string); ok {
+	if v, ok := req.Metadata["user_id"].(string); ok && v != "" {
 		return v
 	}
-	return ""
+	return fallback
 }
 
 func stopSequences(raw json.RawMessage) []string {
