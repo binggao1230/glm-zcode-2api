@@ -247,16 +247,17 @@ zcode:
 </footer>
 
 <script>
+  var LANG_KEY = 'z2a-lang-v2'; // new key: old visitors' stored 'zh' must not override the EN default
   function setLang(l){
     document.documentElement.dataset.lang = l;
-    try{ localStorage.setItem('z2a-lang', l); }catch(e){}
+    try{ localStorage.setItem(LANG_KEY, l); }catch(e){}
     document.querySelectorAll('.lang-btn').forEach(function(b){
       b.classList.toggle('active', b.dataset.set === l);
     });
   }
   (function(){
     var saved = 'en';
-    try{ saved = localStorage.getItem('z2a-lang') || 'zh'; }catch(e){}
+    try{ saved = localStorage.getItem(LANG_KEY) || 'en'; }catch(e){}
     setLang(saved);
   })();
 </script>
