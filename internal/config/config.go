@@ -26,13 +26,13 @@ type Server struct {
 }
 
 type Upstream struct {
-	// BaseURL empty means: take it from the Z Code provider entry.
+	// BaseURL empty means: take it from the ZCode provider entry.
 	BaseURL    string `json:"base_url"`
 	ProviderID string `json:"provider_id"`
 	APIKey     string `json:"api_key"`
-	// CredentialConfigPath overrides the Z Code provider configuration path.
+	// CredentialConfigPath overrides the ZCode provider configuration path.
 	CredentialConfigPath string `json:"credential_config_path"`
-	// MimicClient sends the Z Code client's attribution headers so that plan
+	// MimicClient sends the ZCode client's attribution headers so that plan
 	// promotions (off-peak discounts, free flash windows) apply to proxied
 	// requests the same way they do inside the app.
 	MimicClient bool   `json:"mimic_client"`

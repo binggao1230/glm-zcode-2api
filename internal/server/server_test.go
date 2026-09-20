@@ -64,7 +64,7 @@ func newGateway(t *testing.T, upstreamURL string) http.Handler {
 	zcodeConfig := filepath.Join(dir, "config.json")
 	document := `{"provider":{"builtin:bigmodel-coding-plan":{"name":"BigModel - Coding Plan","kind":"anthropic","enabled":true,"options":{"apiKey":"upstream-key","baseURL":"` + upstreamURL + `"}}}}`
 	if err := os.WriteFile(zcodeConfig, []byte(document), 0o600); err != nil {
-		t.Fatalf("write Z Code config: %v", err)
+		t.Fatalf("write ZCode config: %v", err)
 	}
 	cfg := config.Default()
 	cfg.APIKey = "local-key"

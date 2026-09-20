@@ -22,7 +22,7 @@ type Options struct {
 	PromptCache      bool
 	Replay           *ReplayCache
 	// UserID is the account identifier sent as metadata.user_id when the
-	// client does not provide one; mirrors what the Z Code app sends.
+	// client does not provide one; mirrors what the ZCode app sends.
 	UserID string
 }
 
@@ -89,7 +89,7 @@ func Request(req *openai.ChatRequest, upstreamModel string, opts Options) (*anth
 // resolveThinking decides whether extended thinking is on and at which effort.
 // The client wins when it asks for a level; the configuration is the default.
 // The upstream accepts any effort string, so the mapping only normalizes the
-// client vocabulary onto the levels Z Code itself uses (low/medium/high/max).
+// client vocabulary onto the levels ZCode itself uses (low/medium/high/max).
 func resolveThinking(req *openai.ChatRequest, opts Options) (bool, string) {
 	disabled, forced := thinkingDirective(req.Thinking)
 	if disabled {
@@ -494,7 +494,7 @@ func toolChoice(raw json.RawMessage) map[string]any {
 }
 
 // applyCacheControl marks the system prompt for prompt caching, mirroring what
-// the Z Code client itself does. At most maxCacheBreakpoints are used.
+// the ZCode client itself does. At most maxCacheBreakpoints are used.
 func applyCacheControl(req *anthropic.Request) {
 	for i := len(req.System) - 1; i >= 0 && i >= len(req.System)-maxCacheBreakpoints; i-- {
 		if req.System[i]["text"] == "" {

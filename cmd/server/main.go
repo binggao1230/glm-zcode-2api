@@ -1,4 +1,4 @@
-// Command server runs the Z Code → OpenAI-compatible gateway.
+// Command server runs the ZCode → OpenAI-compatible gateway.
 package main
 
 import (

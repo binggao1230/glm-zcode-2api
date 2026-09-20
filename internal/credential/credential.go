@@ -1,5 +1,5 @@
 // Package credential discovers the upstream API credential from the local
-// Z Code installation. Only the API key and base URL are read; the key is
+// ZCode installation. Only the API key and base URL are read; the key is
 // never written to logs or to the OMP configuration.
 package credential
 
@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-// DefaultConfigPath is the Z Code (desktop app) provider configuration.
+// DefaultConfigPath is the ZCode (desktop app) provider configuration.
 func DefaultConfigPath() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -47,7 +47,7 @@ type zcodeConfig struct {
 	Provider map[string]providerEntry `json:"provider"`
 }
 
-// Resolver reads and caches the credential, re-reading the Z Code
+// Resolver reads and caches the credential, re-reading the ZCode
 // configuration when it changes on disk.
 type Resolver struct {
 	ConfigPath string
@@ -70,11 +70,11 @@ func (r *Resolver) Resolve() (Credential, error) {
 		path = DefaultConfigPath()
 	}
 	if path == "" {
-		return Credential{}, fmt.Errorf("cannot determine the Z Code configuration path")
+		return Credential{}, fmt.Errorf("cannot determine the ZCode configuration path")
 	}
 	info, err := os.Stat(path)
 	if err != nil {
-		return Credential{}, fmt.Errorf("Z Code configuration not found at %s: sign in to Z Code first", path)
+		return Credential{}, fmt.Errorf("ZCode configuration not found at %s: sign in to ZCode first", path)
 	}
 
 	ttl := r.CacheTTL
@@ -104,14 +104,14 @@ func (r *Resolver) Resolve() (Credential, error) {
 func load(path, preferred string) (Credential, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		return Credential{}, fmt.Errorf("read Z Code configuration: %w", err)
+		return Credential{}, fmt.Errorf("read ZCode configuration: %w", err)
 	}
 	var cfg zcodeConfig
 	if err := json.Unmarshal(raw, &cfg); err != nil {
-		return Credential{}, fmt.Errorf("parse Z Code configuration %s: %w", path, err)
+		return Credential{}, fmt.Errorf("parse ZCode configuration %s: %w", path, err)
 	}
 	if len(cfg.Provider) == 0 {
-		return Credential{}, fmt.Errorf("Z Code configuration %s has no providers", path)
+		return Credential{}, fmt.Errorf("ZCode configuration %s has no providers", path)
 	}
 
 	// An explicitly requested provider must be usable; surface why it is not.
@@ -121,7 +121,7 @@ func load(path, preferred string) (Credential, error) {
 			return Credential{}, fmt.Errorf("provider %q is not present in %s", preferred, path)
 		}
 		if entry.Options.APIKey == "" {
-			return Credential{}, fmt.Errorf("provider %q has no API key; sign in to Z Code again", preferred)
+			return Credential{}, fmt.Errorf("provider %q has no API key; sign in to ZCode again", preferred)
 		}
 		if entry.DisabledReason != "" {
 			return Credential{}, fmt.Errorf("provider %q is unavailable (%s)", preferred, entry.DisabledReason)
@@ -163,5 +163,5 @@ func load(path, preferred string) (Credential, error) {
 			Source:     path,
 		}, nil
 	}
-	return Credential{}, fmt.Errorf("no usable Z Code provider with an API key in %s; sign in to Z Code first", path)
+	return Credential{}, fmt.Errorf("no usable ZCode provider with an API key in %s; sign in to ZCode first", path)
 }

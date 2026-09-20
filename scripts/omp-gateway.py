@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Manage one loopback gateway backed by the current Z Code login.
+"""Manage one loopback gateway backed by the current ZCode login.
 
-The gateway reads the Z Code provider configuration directly; no credential is
-copied, and the Z Code app files are never modified. Restart the gateway after
-signing into Z Code again or switching plans.
+The gateway reads the ZCode provider configuration directly; no credential is
+copied, and the ZCode app files are never modified. Restart the gateway after
+signing into ZCode again or switching plans.
 """
 import argparse
 import contextlib
@@ -91,22 +91,22 @@ def select_provider(document):
     entry = providers.get(preferred)
     if entry is None:
         raise RuntimeError(
-            f"Z Code has no provider {preferred!r}; start Z Code and sign in first")
+            f"ZCode has no provider {preferred!r}; start ZCode and sign in first")
     options = entry.get("options") or {}
     if entry.get("systemDisabledReason"):
         raise RuntimeError(
-            f"Z Code provider {preferred!r} is unavailable ({entry['systemDisabledReason']}); "
-            "check your plan in Z Code")
+            f"ZCode provider {preferred!r} is unavailable ({entry['systemDisabledReason']}); "
+            "check your plan in ZCode")
     if not options.get("apiKey"):
         raise RuntimeError(
-            f"Z Code provider {preferred!r} has no API key; sign in to Z Code again")
+            f"ZCode provider {preferred!r} has no API key; sign in to ZCode again")
     if not options.get("baseURL"):
-        raise RuntimeError(f"Z Code provider {preferred!r} has no base URL")
+        raise RuntimeError(f"ZCode provider {preferred!r} has no base URL")
     return preferred, entry
 
 
 def app_version():
-    """Read the installed Z Code version; fall back to a recent known one."""
+    """Read the installed ZCode version; fall back to a recent known one."""
     plist = Path("/Applications/ZCode.app/Contents/Info.plist")
     try:
         import plistlib
@@ -134,12 +134,12 @@ def models_from_provider(entry):
             "supports_images": "image" in modalities,
         })
     if not models:
-        raise RuntimeError("the Z Code provider lists no models; open Z Code once to refresh it")
+        raise RuntimeError("the ZCode provider lists no models; open ZCode once to refresh it")
     return models
 
 
 def account_user_id(document):
-    """Recover the Zhipu account id from any plan JWT in the Z Code config."""
+    """Recover the Zhipu account id from any plan JWT in the ZCode config."""
     import base64
     for entry in (document.get("provider") or {}).values():
         candidate = ((entry.get("options") or {}).get("apiKey") or "")
@@ -160,7 +160,7 @@ def prepare():
     try:
         document = json.loads(ZCODE_CONFIG.read_text())
     except (OSError, ValueError) as error:
-        raise RuntimeError(f"cannot read the Z Code configuration: {error}")
+        raise RuntimeError(f"cannot read the ZCode configuration: {error}")
     provider_id, entry = select_provider(document)
     models = models_from_provider(entry)
 
@@ -176,7 +176,7 @@ def prepare():
         "provider_id": provider_id,
         "credential_config_path": str(ZCODE_CONFIG),
         "anthropic_version": "2023-06-01",
-        # Identify proxied requests as the Z Code client so plan promotions
+        # Identify proxied requests as the ZCode client so plan promotions
         # (off-peak discounts, free flash windows) apply the same way.
         "mimic_client": True,
         "app_version": app_version(),

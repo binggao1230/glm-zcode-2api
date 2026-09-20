@@ -1,4 +1,4 @@
-// Package upstream talks to the Anthropic-protocol endpoint that Z Code uses.
+// Package upstream talks to the Anthropic-protocol endpoint that ZCode uses.
 package upstream
 
 import (
