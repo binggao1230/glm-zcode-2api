@@ -22,6 +22,14 @@
 
 ---
 
+## For AI agents: one sentence to set it all up
+
+Send this to any AI coding agent (OMP / Claude Code / Cursor…) and it will install, start and wire everything into OMP:
+
+> Read <https://github.com/binggao1230/glm-zcode-2api/blob/main/AI_SETUP.md> and follow it exactly; report each step's result when done.
+
+Or install it as a skill: copy [`skills/glm-zcode-2api-setup/`](skills/glm-zcode-2api-setup/SKILL.md) into your agent's skills directory (e.g. `~/.claude/skills/` for Claude Code), then just say "set up the ZCode gateway with glm-zcode-2api-setup".
+
 ## Usage
 
 ### Install & run

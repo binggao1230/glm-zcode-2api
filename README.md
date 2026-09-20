@@ -22,6 +22,14 @@
 
 ---
 
+## 给 AI：一句话自动配置
+
+把这句话发给任何 AI 编码代理（OMP / Claude Code / Cursor…），它会自动完成安装、启动与 OMP 接入：
+
+> 请阅读 <https://github.com/binggao1230/glm-zcode-2api/blob/main/AI_SETUP.md>，严格按文档执行，完成后逐步报告结果。
+
+也可以装成 skill：把 [`skills/glm-zcode-2api-setup/`](skills/glm-zcode-2api-setup/SKILL.md) 复制到你所用代理的 skills 目录（如 Claude Code 的 `~/.claude/skills/`），之后直接说「用 glm-zcode-2api-setup 帮我配置 ZCode 网关」。
+
 ## 使用
 
 ### 安装并启动
