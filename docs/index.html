@@ -117,60 +117,25 @@
 <section id="start" class="alt">
   <div class="wrap">
     <h2 data-l="zh">快速开始</h2><h2 data-l="en">Quick Start</h2>
-    <div data-l="zh">
-      <div class="terminal"><div class="bar"><i></i><i></i><i></i></div>
-<pre><span class="p">$</span> curl -sN http://127.0.0.1:7864/v1/chat/completions \
-    -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-    -d '{"model":"$MODEL","messages":[{"role":"user","content":"hi"}],"stream":true}'
-
-data: {"choices":[{"delta":{"role":"assistant"}}]}
-data: {"choices":[{"delta":{"reasoning_content":"…"}}]}
-data: {"choices":[{"delta":{"content":"你好！"}}]}
-data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
-data: [DONE]</pre></div>
-      <p style="color:var(--muted);font-size:13.5px;margin-bottom:18px"><code>$MODEL</code> 换成你套餐里的任意模型；流式帧顺序：角色 → <code>reasoning_content</code> → 内容 → <code>finish_reason</code> → <code>[DONE]</code>。</p>
-      <div class="cols">
-        <div class="col">
-          <h3>1 · 构建并启动</h3>
+    <p style="color:var(--muted);font-size:13.5px;margin:-10px 0 20px" data-l="zh">前置条件：本机已登录 ZCode 桌面版 · Go ≥ 1.22（构建）· Python 3（启动器）</p>
+    <p style="color:var(--muted);font-size:13.5px;margin:-10px 0 20px" data-l="en">Prerequisites: ZCode desktop signed in · Go ≥ 1.22 (build) · Python 3 (launcher)</p>
+    <div class="cols">
+      <div class="col" data-l="zh">
+        <h3>1 · 安装并启动</h3>
 <pre>git clone https://github.com/binggao1230/glm-zcode-2api
 cd glm-zcode-2api
 
 CGO_ENABLED=0 go build -trimpath \
   -ldflags="-s -w" -o bin/glm-zcode-2api ./cmd/server
 
-<span class="c"># 读取 ZCode 配置、生成口令、后台常驻</span>
+<span class="c"># 读取 ZCode 配置、生成访问口令、后台常驻</span>
 python3 scripts/omp-gateway.py start
 
-curl -s http://127.0.0.1:7864/healthz</pre>
-        </div>
-        <div class="col">
-          <h3>2 · 接入 OMP（oh-my-pi）</h3>
-<pre><span class="c"># ~/.omp/agent/models.yml</span>
-zcode:
-  baseUrl: http://127.0.0.1:7864/v1
-  api: openai-completions
-  apiKey: <span class="s">'!~/projects/glm-zcode-2api/
-    scripts/omp-gateway.py token'</span>
-  authHeader: true</pre>
-          <p style="color:var(--muted);font-size:13.5px;margin-top:10px">OMP 解析凭据时若网关未运行会自动拉起（≤2s），无需常驻。</p>
-        </div>
+curl -s http://127.0.0.1:7864/healthz
+<span class="c"># {"service":"glm-zcode-2api","healthy":true,...}</span></pre>
       </div>
-    </div>
-    <div data-l="en">
-      <div class="terminal"><div class="bar"><i></i><i></i><i></i></div>
-<pre><span class="p">$</span> curl -sN http://127.0.0.1:7864/v1/chat/completions \
-    -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-    -d '{"model":"$MODEL","messages":[{"role":"user","content":"hi"}],"stream":true}'
-
-data: {"choices":[{"delta":{"role":"assistant"}}]}
-data: {"choices":[{"delta":{"reasoning_content":"…"}}]}
-data: {"choices":[{"delta":{"content":"Hi there!"}}]}
-data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
-data: [DONE]</pre></div>
-      <p style="color:var(--muted);font-size:13.5px;margin-bottom:18px">Replace <code>$MODEL</code> with any model your plan provides; stream frame order: role → <code>reasoning_content</code> → content → <code>finish_reason</code> → <code>[DONE]</code>.</p>
-      <div class="cols">
-        <div class="col">
-          <h3>1 · Build &amp; run</h3>
+      <div class="col" data-l="en">
+        <h3>1 · Install &amp; run</h3>
 <pre>git clone https://github.com/binggao1230/glm-zcode-2api
 cd glm-zcode-2api
 
@@ -180,19 +145,98 @@ CGO_ENABLED=0 go build -trimpath \
 <span class="c"># reads the ZCode config, mints the token, daemonizes</span>
 python3 scripts/omp-gateway.py start
 
-curl -s http://127.0.0.1:7864/healthz</pre>
-        </div>
-        <div class="col">
-          <h3>2 · Hook up OMP (oh-my-pi)</h3>
+curl -s http://127.0.0.1:7864/healthz
+<span class="c"># {"service":"glm-zcode-2api","healthy":true,...}</span></pre>
+      </div>
+    </div>
+    <div class="cols" style="margin-top:16px">
+      <div class="col" data-l="zh">
+        <h3>2 · 验证</h3>
+<pre>KEY=$(python3 scripts/omp-gateway.py token)
+
+curl -sN http://127.0.0.1:7864/v1/chat/completions \
+  -H "Authorization: Bearer $KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"&lt;套餐内模型&gt;","messages":[{"role":"user","content":"hi"}],"stream":true}'
+
+data: {"choices":[{"delta":{"reasoning_content":"…"}}]}
+data: {"choices":[{"delta":{"content":"你好！"}}]}
+data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
+data: [DONE]</pre>
+      </div>
+      <div class="col" data-l="en">
+        <h3>2 · Verify</h3>
+<pre>KEY=$(python3 scripts/omp-gateway.py token)
+
+curl -sN http://127.0.0.1:7864/v1/chat/completions \
+  -H "Authorization: Bearer $KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"&lt;a model from your plan&gt;","messages":[{"role":"user","content":"hi"}],"stream":true}'
+
+data: {"choices":[{"delta":{"reasoning_content":"…"}}]}
+data: {"choices":[{"delta":{"content":"Hi there!"}}]}
+data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
+data: [DONE]</pre>
+      </div>
+    </div>
+    <div class="col" style="margin-top:16px" data-l="zh">
+      <h3>3 · 接入 OMP（oh-my-pi）</h3>
 <pre><span class="c"># ~/.omp/agent/models.yml</span>
 zcode:
   baseUrl: http://127.0.0.1:7864/v1
   api: openai-completions
-  apiKey: <span class="s">'!~/projects/glm-zcode-2api/
-    scripts/omp-gateway.py token'</span>
-  authHeader: true</pre>
-          <p style="color:var(--muted);font-size:13.5px;margin-top:10px">OMP starts the gateway automatically when resolving credentials (≤2s) — no daemon required.</p>
-        </div>
+  apiKey: '!/usr/bin/python3 ~/projects/glm-zcode-2api/scripts/omp-gateway.py token'
+  authHeader: true
+  compat:
+    supportsStore: false
+    supportsDeveloperRole: false
+    maxTokensField: max_tokens
+  models:
+  <span class="c"># 模型以套餐实际提供为准，按需增删</span>
+  - id: glm-5.3
+    name: ZCode / GLM-5.3
+    reasoning: true
+    input: [text]
+    contextWindow: 1000000
+    maxTokens: 128000</pre>
+      <p style="color:var(--muted);font-size:13.5px;margin-top:10px"><code>apiKey</code> 指向取口令命令而非固定密钥——OMP 解析该 provider 时若网关未运行会自动拉起（≤2s），无需常驻。</p>
+    </div>
+    <div class="col" style="margin-top:16px" data-l="en">
+      <h3>3 · Wire up OMP (oh-my-pi)</h3>
+<pre><span class="c"># ~/.omp/agent/models.yml</span>
+zcode:
+  baseUrl: http://127.0.0.1:7864/v1
+  api: openai-completions
+  apiKey: '!/usr/bin/python3 ~/projects/glm-zcode-2api/scripts/omp-gateway.py token'
+  authHeader: true
+  compat:
+    supportsStore: false
+    supportsDeveloperRole: false
+    maxTokensField: max_tokens
+  models:
+  <span class="c"># list the models your plan actually provides</span>
+  - id: glm-5.3
+    name: ZCode / GLM-5.3
+    reasoning: true
+    input: [text]
+    contextWindow: 1000000
+    maxTokens: 128000</pre>
+      <p style="color:var(--muted);font-size:13.5px;margin-top:10px"><code>apiKey</code> points at the token-printing command, not a fixed secret — OMP starts the gateway on demand (≤2s) when resolving this provider; no daemon required.</p>
+    </div>
+    <div class="cols" style="margin-top:16px">
+      <div class="col" data-l="zh">
+        <h3>管理命令</h3>
+<pre>python3 scripts/omp-gateway.py status   <span class="c"># 运行状态</span>
+python3 scripts/omp-gateway.py restart  <span class="c"># 重新登录后同步</span>
+python3 scripts/omp-gateway.py stop
+python3 scripts/omp-gateway.py token    <span class="c"># 打印访问口令</span></pre>
+      </div>
+      <div class="col" data-l="en">
+        <h3>Management commands</h3>
+<pre>python3 scripts/omp-gateway.py status   <span class="c"># runtime status</span>
+python3 scripts/omp-gateway.py restart  <span class="c"># after re-login</span>
+python3 scripts/omp-gateway.py stop
+python3 scripts/omp-gateway.py token    <span class="c"># print the access token</span></pre>
       </div>
     </div>
   </div>
