@@ -20,8 +20,9 @@
   .wrap{max-width:1000px;margin:0 auto;padding:0 24px}
   header.site{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(11,15,20,.82);border-bottom:1px solid var(--line)}
   header.site .wrap{display:flex;align-items:center;gap:18px;height:60px}
-  .logo{font-weight:700;font-size:17px;letter-spacing:.2px}
-  .logo span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:17px;letter-spacing:.2px;color:var(--text)}
+  .logo img{display:block;border-radius:7px}
+  .logo span{color:var(--text)}
   header.site nav{margin-left:auto;display:flex;gap:18px;font-size:14.5px;align-items:center}
   header.site nav a{color:var(--muted)}
   header.site nav a:hover{color:var(--text);text-decoration:none}
@@ -81,7 +82,7 @@
 
 <header class="site">
   <div class="wrap">
-    <div class="logo" style="display:flex;align-items:center;gap:9px"><img src="logo.svg" width="26" height="26" alt="" style="border-radius:6px">glm<span>-zcode-2api</span></div>
+    <div class="logo"><img src="logo.svg" width="26" height="26" alt=""><span>glm-zcode-2api</span></div>
     <nav>
       <a href="https://github.com/binggao1230/glm-zcode-2api">GitHub</a>
       <span class="lang">
@@ -303,11 +304,7 @@ python3 scripts/omp-gateway.py token     # print the access token</pre>
 <footer>
   <div class="wrap">
     <div>MIT License · © 2026 glm-zcode-2api contributors</div>
-    <div>
-      <a href="https://github.com/binggao1230/glm-zcode-2api/blob/main/README.zh-CN.md" data-l="zh">README（中文）</a>
-      <a href="https://github.com/binggao1230/glm-zcode-2api/blob/main/README.md" data-l="en">README (EN)</a>
-      · <a href="https://github.com/binggao1230/glm-zcode-2api">GitHub</a>
-    </div>
+    <div><a href="https://github.com/binggao1230/glm-zcode-2api">GitHub</a></div>
   </div>
 </footer>
 
