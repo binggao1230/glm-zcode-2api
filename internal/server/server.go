@@ -1,0 +1,390 @@
+// Package server exposes the OpenAI-compatible HTTP surface.
+package server
+
+import (
+	"context"
+	"crypto/subtle"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"strings"
+	"time"
+
+	"glm-zcode-proxy/internal/anthropic"
+	"glm-zcode-proxy/internal/config"
+	"glm-zcode-proxy/internal/convert"
+	"glm-zcode-proxy/internal/credential"
+	"glm-zcode-proxy/internal/openai"
+	"glm-zcode-proxy/internal/upstream"
+)
+
+// Service identifies this gateway in health responses.
+const Service = "glm-zcode-proxy"
+
+type Server struct {
+	cfg      *config.Config
+	resolver *credential.Resolver
+	replay   *convert.ReplayCache
+	client   *upstream.Client
+	logger   *log.Logger
+	started  time.Time
+}
+
+func New(cfg *config.Config, logger *log.Logger) *Server {
+	if logger == nil {
+		logger = log.Default()
+	}
+	return &Server{
+		cfg: cfg,
+		resolver: &credential.Resolver{
+			ConfigPath: cfg.Upstream.CredentialConfigPath,
+			ProviderID: cfg.Upstream.ProviderID,
+		},
+		replay: convert.NewReplayCache(512),
+		client: &upstream.Client{
+			BaseURL:     cfg.Upstream.BaseURL,
+			APIKey:      cfg.Upstream.APIKey,
+			APIVersion:  cfg.Upstream.AnthropicVersion,
+			UserAgent:   cfg.Upstream.UserAgent,
+			Beta:        cfg.Upstream.Beta,
+			IdleTimeout: cfg.Upstream.IdleTimeout(),
+			HTTP:        upstream.NewHTTPClient(cfg.Upstream.HeaderTimeout(), 16),
+		},
+		logger:  logger,
+		started: time.Now(),
+	}
+}
+
+func (s *Server) Handler() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", s.handleHealth)
+	mux.HandleFunc("/status", s.auth(s.handleStatus))
+	mux.HandleFunc("/v1/models", s.auth(s.handleModels))
+	mux.HandleFunc("/v1/chat/completions", s.auth(s.handleChat))
+	return mux
+}
+
+func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	payload := map[string]any{
+		"service": Service,
+		"healthy": false,
+		"models":  len(s.cfg.Models),
+	}
+	cred, err := s.resolver.Resolve()
+	if err != nil {
+		payload["error"] = err.Error()
+		writeJSON(w, http.StatusServiceUnavailable, payload)
+		return
+	}
+	payload["healthy"] = true
+	payload["provider"] = cred.ProviderID
+	writeJSON(w, http.StatusOK, payload)
+}
+
+func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
+	cred, err := s.resolver.Resolve()
+	payload := map[string]any{
+		"service":          Service,
+		"listen":           s.cfg.Listen,
+		"uptime_seconds":   int(time.Since(s.started).Seconds()),
+		"auth_required":    s.cfg.APIKey != "",
+		"models":           s.cfg.ModelIDs(),
+		"thinking_enabled": s.cfg.Thinking.Enabled,
+		"thinking_effort":  s.cfg.Thinking.Effort,
+		"replay_entries":   s.replay.Len(),
+	}
+	if err != nil {
+		payload["credential"] = map[string]any{"available": false, "error": err.Error()}
+		writeJSON(w, http.StatusServiceUnavailable, payload)
+		return
+	}
+	payload["credential"] = map[string]any{
+		"available":   true,
+		"provider_id": cred.ProviderID,
+		"provider":    cred.Provider,
+		"base_url":    cred.BaseURL,
+		"source":      cred.Source,
+	}
+	writeJSON(w, http.StatusOK, payload)
+}
+
+func (s *Server) handleModels(w http.ResponseWriter, r *http.Request) {
+	created := s.started.Unix()
+	list := openai.ModelList{Object: "list", Data: make([]openai.ModelCard, 0, len(s.cfg.Models))}
+	for _, m := range s.cfg.Models {
+		list.Data = append(list.Data, openai.ModelCard{
+			ID: m.ID, Object: "model", Created: created, OwnedBy: "zcode",
+		})
+	}
+	writeJSON(w, http.StatusOK, list)
+}
+
+func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "invalid_request_error", "POST is required", nil)
+		return
+	}
+
+	body := http.MaxBytesReader(w, r.Body, int64(s.cfg.Server.MaxBodyMB)<<20)
+	var req openai.ChatRequest
+	if err := json.NewDecoder(body).Decode(&req); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			writeError(w, http.StatusRequestEntityTooLarge, "request_body_too_large",
+				fmt.Sprintf("request body exceeds %d MB", s.cfg.Server.MaxBodyMB), nil)
+			return
+		}
+		writeError(w, http.StatusBadRequest, "invalid_request_error", "invalid JSON body: "+err.Error(), nil)
+		return
+	}
+
+	spec, ok := s.cfg.Model(req.Model)
+	if !ok {
+		writeError(w, http.StatusNotFound, "model_not_found",
+			fmt.Sprintf("model %q is not served by this gateway; available: %s",
+				req.Model, strings.Join(s.cfg.ModelIDs(), ", ")), "model_not_found")
+		return
+	}
+
+	cred, err := s.resolver.Resolve()
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "upstream_credential_unavailable", err.Error(), nil)
+		return
+	}
+
+	upstreamReq, err := convert.Request(&req, spec.Upstream, convert.Options{
+		DefaultMaxTokens: spec.MaxOutputTokens,
+		ThinkingEnabled:  s.cfg.Thinking.Enabled,
+		ThinkingEffort:   s.cfg.Thinking.Effort,
+		PromptCache:      s.cfg.Thinking.PromptCache,
+		Replay:           s.replay,
+	})
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request_error", err.Error(), nil)
+		return
+	}
+
+	client := s.clientFor(cred)
+	translator := convert.NewTranslator(spec.ID, start.Unix())
+	thinking := thinkingLabel(upstreamReq)
+
+	if !req.Stream {
+		err = client.Messages(r.Context(), upstreamReq, upstream.Handlers{
+			OnEvent: func(event anthropic.Event) error {
+				_, handleErr := translator.Handle(event)
+				return handleErr
+			},
+		})
+		if err != nil {
+			status, body := s.errorFor(err)
+			s.logChat(spec.ID, false, status, start, translator, thinking, err)
+			writeError(w, status, body.Type, body.Message, body.Code)
+			return
+		}
+		s.storeReplay(translator)
+		writeJSON(w, http.StatusOK, translator.Response())
+		s.logChat(spec.ID, false, http.StatusOK, start, translator, thinking, nil)
+		return
+	}
+
+	controller := http.NewResponseController(w)
+	includeUsage := req.StreamOptions != nil && req.StreamOptions.IncludeUsage
+	started := false
+	writeEvent := func(payload any) error {
+		raw, err := json.Marshal(payload)
+		if err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(w, "data: %s\n\n", raw); err != nil {
+			return err
+		}
+		return controller.Flush()
+	}
+
+	err = client.Messages(r.Context(), upstreamReq, upstream.Handlers{
+		OnStart: func() error {
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.Header().Set("Cache-Control", "no-cache")
+			w.Header().Set("Connection", "keep-alive")
+			w.Header().Set("X-Accel-Buffering", "no")
+			w.WriteHeader(http.StatusOK)
+			started = true
+			return writeEvent(translator.RoleChunk())
+		},
+		OnEvent: func(event anthropic.Event) error {
+			chunks, err := translator.Handle(event)
+			if err != nil {
+				return err
+			}
+			for _, chunk := range chunks {
+				if err := writeEvent(chunk); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	})
+
+	if !started {
+		if err == nil {
+			err = errors.New("upstream closed the stream before it started")
+		}
+		status, body := s.errorFor(err)
+		s.logChat(spec.ID, true, status, start, translator, thinking, err)
+		writeError(w, status, body.Type, body.Message, body.Code)
+		return
+	}
+
+	if err != nil && !errors.Is(err, context.Canceled) {
+		_, body := s.errorFor(err)
+		_ = writeEvent(openai.ErrorResponse{Error: body})
+		_, _ = fmt.Fprint(w, "data: [DONE]\n\n")
+		_ = controller.Flush()
+		s.logChat(spec.ID, true, s.statusFor(err), start, translator, thinking, err)
+		return
+	}
+
+	for _, chunk := range translator.FinalChunks() {
+		if writeErr := writeEvent(chunk); writeErr != nil {
+			break
+		}
+	}
+	if includeUsage {
+		usage := translator.Usage()
+		_ = writeEvent(openai.Chunk{
+			ID: translator.ID, Object: "chat.completion.chunk", Created: translator.Created,
+			Model: spec.ID, Choices: []openai.ChunkChoice{}, Usage: &usage,
+		})
+	}
+	_, _ = fmt.Fprint(w, "data: [DONE]\n\n")
+	_ = controller.Flush()
+	s.storeReplay(translator)
+	s.logChat(spec.ID, true, http.StatusOK, start, translator, thinking, err)
+}
+
+// thinkingLabel renders the thinking setting actually sent upstream.
+func thinkingLabel(req *anthropic.Request) string {
+	if req.Thinking == nil {
+		return "default"
+	}
+	if kind, _ := req.Thinking["type"].(string); kind == "disabled" {
+		return "disabled"
+	}
+	if effort, _ := req.OutputConfig["effort"].(string); effort != "" {
+		return effort
+	}
+	return "enabled"
+}
+
+func (s *Server) clientFor(cred credential.Credential) *upstream.Client {
+	client := *s.client
+	if client.BaseURL == "" {
+		client.BaseURL = cred.BaseURL
+	}
+	if client.APIKey == "" {
+		client.APIKey = cred.APIKey
+	}
+	return &client
+}
+
+func (s *Server) storeReplay(t *convert.Translator) {
+	calls := t.ToolCalls()
+	keys, blocks := t.Replay(calls)
+	s.replay.Put(keys, blocks)
+}
+
+func (s *Server) logChat(model string, stream bool, status int, start time.Time, t *convert.Translator, thinking string, err error) {
+	usage := t.Usage()
+	line := fmt.Sprintf("event=chat model=%s stream=%t status=%d thinking=%s total_ms=%d prompt_tokens=%d completion_tokens=%d finish=%s",
+		model, stream, status, thinking, time.Since(start).Milliseconds(),
+		usage.PromptTokens, usage.CompletionTokens, t.FinishReason())
+	if err != nil {
+		line += fmt.Sprintf(" error=%q", err.Error())
+	}
+	s.logger.Println(line)
+}
+
+func (s *Server) statusFor(err error) int {
+	status, _ := s.errorFor(err)
+	return status
+}
+
+// errorFor maps an upstream failure onto an HTTP status plus OpenAI error body.
+func (s *Server) errorFor(err error) (int, openai.ErrorBody) {
+	var upstreamErr *upstream.Error
+	if errors.As(err, &upstreamErr) {
+		status := upstreamErr.Status
+		switch {
+		case status == http.StatusBadRequest, status == http.StatusUnauthorized,
+			status == http.StatusForbidden, status == http.StatusNotFound,
+			status == http.StatusRequestEntityTooLarge, status == http.StatusUnprocessableEntity,
+			status == http.StatusTooManyRequests:
+		case status == http.StatusRequestTimeout || status == http.StatusGatewayTimeout:
+			status = http.StatusGatewayTimeout
+		default:
+			status = http.StatusBadGateway
+		}
+		kind := upstreamErr.Type
+		if kind == "" {
+			kind = "upstream_error"
+		}
+		return status, openai.ErrorBody{Message: upstreamErr.Message, Type: kind, Code: upstreamErr.Code}
+	}
+	var streamErr *convert.UpstreamError
+	if errors.As(err, &streamErr) {
+		kind := streamErr.Type
+		if kind == "" {
+			kind = "upstream_error"
+		}
+		return http.StatusBadGateway, openai.ErrorBody{Message: streamErr.Message, Type: kind, Code: streamErr.Code}
+	}
+	if errors.Is(err, context.Canceled) {
+		return http.StatusRequestTimeout, openai.ErrorBody{
+			Message: "client closed the request before the upstream finished", Type: "client_closed_request",
+		}
+	}
+	return http.StatusBadGateway, openai.ErrorBody{Message: err.Error(), Type: "upstream_error"}
+}
+
+func (s *Server) auth(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if s.cfg.APIKey == "" {
+			next(w, r)
+			return
+		}
+		key := bearerToken(r)
+		if key == "" {
+			key = r.Header.Get("x-api-key")
+		}
+		if subtle.ConstantTimeCompare([]byte(key), []byte(s.cfg.APIKey)) != 1 {
+			w.Header().Set("WWW-Authenticate", `Bearer realm="glm-zcode-proxy"`)
+			writeError(w, http.StatusUnauthorized, "authentication_error", "invalid or missing API key", nil)
+			return
+		}
+		next(w, r)
+	}
+}
+
+func bearerToken(r *http.Request) string {
+	header := r.Header.Get("Authorization")
+	if len(header) < 7 || !strings.EqualFold(header[:7], "bearer ") {
+		return ""
+	}
+	return strings.TrimSpace(header[7:])
+}
+
+func writeJSON(w http.ResponseWriter, status int, payload any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	encoder := json.NewEncoder(w)
+	_ = encoder.Encode(payload)
+}
+
+func writeError(w http.ResponseWriter, status int, kind, message string, code any) {
+	writeJSON(w, status, openai.ErrorResponse{Error: openai.ErrorBody{
+		Message: message, Type: kind, Code: code,
+	}})
+}

@@ -1,0 +1,41 @@
+{
+  "listen": "0.0.0.0:7864",
+  "api_key": "replace-with-a-local-random-key",
+  "server": {
+    "max_body_mb": 16
+  },
+  "upstream": {
+    "base_url": "",
+    "provider_id": "builtin:bigmodel-coding-plan",
+    "api_key": "",
+    "anthropic_version": "2023-06-01",
+    "user_agent": "glm-zcode-proxy/0.1",
+    "beta": [],
+    "timeout_seconds": 120,
+    "header_timeout_seconds": 120,
+    "idle_timeout_seconds": 300
+  },
+  "thinking": {
+    "enabled": true,
+    "effort": "max",
+    "prompt_cache": true
+  },
+  "models": [
+    {
+      "id": "glm-5.3",
+      "upstream": "GLM-5.3",
+      "name": "GLM-5.3",
+      "context_length": 1000000,
+      "max_output_tokens": 128000,
+      "supports_images": false
+    },
+    {
+      "id": "glm-5.3-flash",
+      "upstream": "GLM-5.3-Flash",
+      "name": "GLM-5.3-Flash",
+      "context_length": 1000000,
+      "max_output_tokens": 128000,
+      "supports_images": true
+    }
+  ]
+}
