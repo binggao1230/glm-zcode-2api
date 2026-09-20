@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>glm-zcode-2api · 把 ZCode 变成 OpenAI 兼容 API / Turn ZCode into an OpenAI-compatible API</title>
-<meta name="description" content="本机反向代理：把 ZCode（GLM Coding Plan）的 Anthropic 端点包装成 OpenAI 兼容 API，凭据零搬运，工具循环与思考档位完整透传。A local reverse proxy that exposes the ZCode coding plan as an OpenAI-compatible API.">
+<title>glm-zcode-2api · 本地原生的 ZCode → OpenAI 兼容网关 / A local-native ZCode → OpenAI gateway</title>
+<meta name="description" content="本机反向代理：把 ZCode 订阅原生变成 OpenAI 兼容 API，凭据零搬运，工具循环与思考档位完整透传。A local reverse proxy that exposes the ZCode plan as an OpenAI-compatible API.">
 <style>
   :root{
     --bg:#0b0f14; --panel:#11161d; --panel2:#0e1319; --line:#1f2733;
     --text:#e6edf3; --muted:#8b98a5; --accent:#5b9dff; --accent2:#8b7bff;
-    --green:#3fb950; --amber:#d29922; --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth}
@@ -17,7 +17,7 @@
   a{color:var(--accent);text-decoration:none}
   a:hover{text-decoration:underline}
   code,pre{font-family:var(--mono)}
-  .wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px}
   header.site{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(11,15,20,.82);border-bottom:1px solid var(--line)}
   header.site .wrap{display:flex;align-items:center;gap:18px;height:60px}
   .logo{font-weight:700;font-size:17px;letter-spacing:.2px}
@@ -30,12 +30,12 @@
   .lang button.active{background:var(--panel);color:var(--text)}
   html[data-lang="en"] [data-l="zh"]{display:none!important}
   html[data-lang="zh"] [data-l="en"]{display:none!important}
-  .hero{padding:84px 0 56px;text-align:center;background:
+  .hero{padding:92px 0 60px;text-align:center;background:
     radial-gradient(600px 260px at 50% -60px,rgba(91,157,255,.16),transparent 70%),
     radial-gradient(520px 240px at 78% 10%,rgba(139,123,255,.10),transparent 70%)}
-  .hero h1{font-size:44px;line-height:1.15;letter-spacing:-.5px}
+  .hero h1{font-size:42px;line-height:1.18;letter-spacing:-.5px}
   .hero h1 .grad{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
-  .hero p.sub{color:var(--muted);font-size:18.5px;margin:18px auto 8px;max-width:780px}
+  .hero p.sub{color:var(--muted);font-size:18px;margin:18px auto 8px;max-width:720px}
   .badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:30px}
   .badge{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 13px;font-size:13px;color:var(--muted)}
   .badge b{color:var(--text);font-weight:600}
@@ -45,19 +45,9 @@
   .btn.primary:hover{filter:brightness(1.1);text-decoration:none}
   .btn.ghost{color:var(--text)}
   .btn.ghost:hover{border-color:var(--accent);text-decoration:none}
-  h2{font-size:26px;margin:0 0 22px;letter-spacing:-.3px}
-  section{padding:56px 0}
+  h2{font-size:25px;margin:0 0 22px;letter-spacing:-.3px}
+  section{padding:52px 0}
   section.alt{background:var(--panel2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px}
-  .card h3{font-size:15.5px;margin-bottom:8px}
-  .card h3 .ic{margin-right:7px}
-  .card p{color:var(--muted);font-size:14px;line-height:1.65}
-  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:14px}
-  th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
-  th{background:var(--panel2);color:var(--muted);font-weight:600}
-  td:first-child{white-space:nowrap}
-  .tbl-wrap{overflow-x:auto;border-radius:12px}
   .diagram{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:26px 20px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;font-size:14px}
   .node{border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:12px 16px;text-align:center;min-width:150px}
   .node b{display:block;font-size:14.5px}
@@ -69,7 +59,6 @@
   @media(max-width:760px){.cols{grid-template-columns:1fr}}
   pre{background:#0a0e13;border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.75;color:#c9d6e4}
   pre .c{color:#5c6b7a}
-  pre .s{color:#a5c8ff}
   pre .p{color:#3fb950;user-select:none}
   .col h3{font-size:15px;color:var(--muted);font-weight:600;margin-bottom:10px;text-transform:uppercase;letter-spacing:.6px}
   .terminal{background:#0a0e13;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px}
@@ -77,18 +66,10 @@
   .terminal .bar i{width:11px;height:11px;border-radius:50%;display:block}
   .terminal .bar i:nth-child(1){background:#ff5f57}.terminal .bar i:nth-child(2){background:#febc2e}.terminal .bar i:nth-child(3){background:#28c840}
   .terminal pre{border:none;border-radius:0;margin:0}
-  details{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:0 18px;margin-bottom:10px}
-  details summary{cursor:pointer;padding:15px 0;font-weight:600;font-size:15.5px;list-style:none;position:relative;padding-right:30px}
-  details summary::-webkit-details-marker{display:none}
-  details summary::after{content:"+";position:absolute;right:2px;top:14px;color:var(--accent);font-size:18px}
-  details[open] summary::after{content:"–"}
-  details .a{color:var(--muted);font-size:14.5px;padding:0 0 16px;line-height:1.7}
-  details .a code{background:#0a0e13;border:1px solid var(--line);border-radius:5px;padding:1px 6px;font-size:12.5px}
-  .note{border:1px solid #3a2c12;background:#1a1509;border-radius:12px;padding:16px 18px;color:#d8c99a;font-size:14px;line-height:1.7}
   .chips{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;gap:8px;flex-wrap:wrap;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
   footer{border-top:1px solid var(--line);padding:34px 0 44px;color:var(--muted);font-size:13.5px}
   footer .wrap{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap}
-  @media(max-width:640px){.hero h1{font-size:34px}section{padding:44px 0}}
+  @media(max-width:640px){.hero h1{font-size:33px}section{padding:42px 0}}
 </style>
 </head>
 <body>
@@ -97,10 +78,6 @@
   <div class="wrap">
     <div class="logo">glm<span>-zcode-2api</span></div>
     <nav>
-      <a href="#features" data-l="zh">特性</a><a href="#features" data-l="en">Features</a>
-      <a href="#arch" data-l="zh">架构</a><a href="#arch" data-l="en">Architecture</a>
-      <a href="#start" data-l="zh">快速开始</a><a href="#start" data-l="en">Quick Start</a>
-      <a href="#faq" data-l="zh">FAQ</a><a href="#faq" data-l="en">FAQ</a>
       <a href="https://github.com/binggao1230/glm-zcode-2api">GitHub</a>
       <span class="lang">
         <button class="lang-btn" data-set="zh" onclick="setLang('zh')">中文</button>
@@ -113,16 +90,16 @@
 <div class="hero">
   <div class="wrap">
     <div data-l="zh">
-      <h1>把 <span class="grad">ZCode</span> 变成 OpenAI 兼容 API</h1>
-      <p class="sub">本机反向代理：GLM-5.3 / GLM-5.3-Flash 走标准 <code>/v1/chat/completions</code>，凭据零搬运，工具循环与思考档位完整透传。</p>
+      <h1>本地原生：<span class="grad">ZCode 订阅</span>即 OpenAI 兼容 API</h1>
+      <p class="sub">网关跑在本机上，直接以你的 ZCode 订阅为上游——开箱即用，凭据零搬运，套餐权益照常生效。模型以套餐实际提供为准。</p>
       <div class="cta">
         <a class="btn primary" href="#start">快速开始</a>
         <a class="btn ghost" href="https://github.com/binggao1230/glm-zcode-2api">GitHub 仓库 →</a>
       </div>
     </div>
     <div data-l="en">
-      <h1>Turn <span class="grad">ZCode</span> into an OpenAI-compatible API</h1>
-      <p class="sub">A local reverse proxy: GLM-5.3 / GLM-5.3-Flash over standard <code>/v1/chat/completions</code>. Zero credential copying, tool loops and thinking effort fully preserved.</p>
+      <h1>Local-native: your <span class="grad">ZCode plan</span> is the API</h1>
+      <p class="sub">The gateway runs on your machine and uses your ZCode plan as upstream — works out of the box, zero credential copying, plan perks included. Models follow whatever your plan provides.</p>
       <div class="cta">
         <a class="btn primary" href="#start">Quick Start</a>
         <a class="btn ghost" href="https://github.com/binggao1230/glm-zcode-2api">GitHub repo →</a>
@@ -131,72 +108,11 @@
     <div class="badges">
       <span class="badge"><b>MIT</b> License</span>
       <span class="badge"><b>Go</b> stdlib only</span>
-      <span class="badge">single binary <b>~6MB</b></span>
+      <span class="badge">single binary</span>
       <span class="badge">macOS / Linux / Windows</span>
     </div>
   </div>
 </div>
-
-<section id="features">
-  <div class="wrap">
-    <h2 data-l="zh">特性</h2><h2 data-l="en">Features</h2>
-    <div class="grid">
-      <div class="card" data-l="zh"><h3>OpenAI 完全兼容</h3><p><code>/v1/chat/completions</code>、<code>/v1/models</code>；流式 SSE 与非流式聚合双模式，任意 OpenAI SDK / CLI 零改造接入。</p></div>
-      <div class="card" data-l="en"><h3>OpenAI-compatible</h3><p><code>/v1/chat/completions</code> and <code>/v1/models</code>; streaming SSE and aggregated non-streaming. Any OpenAI SDK/CLI works unchanged.</p></div>
-      <div class="card" data-l="zh"><h3>凭据零搬运</h3><p>只读 ZCode 本机配置取 apiKey，不复制、不改写 App 文件；密钥不落仓库、不进 OMP 配置。</p></div>
-      <div class="card" data-l="en"><h3>Zero credential copying</h3><p>Reads the apiKey from the local ZCode config. No copies, no app-file rewrites; no key in the repo or OMP config.</p></div>
-      <div class="card" data-l="zh"><h3>签名思考回放</h3><p>工具循环自动补回带 <code>signature</code> 的 thinking 块——OpenAI 客户端只回显文本，网关替你记住签名。</p></div>
-      <div class="card" data-l="en"><h3>Signed thinking replay</h3><p>Tool loops automatically get the <code>signature</code>-bearing thinking block re-injected — clients only echo visible text, the gateway remembers signatures for you.</p></div>
-      <div class="card" data-l="zh"><h3>思考档位透传</h3><p><code>reasoning_effort</code> → <code>output_config.effort</code>，low / medium / high / max 映射到上游；未指定时用配置默认。</p></div>
-      <div class="card" data-l="en"><h3>Thinking effort pass-through</h3><p><code>reasoning_effort</code> → <code>output_config.effort</code> mapping (low / medium / high / max); config defaults apply when unset.</p></div>
-      <div class="card" data-l="zh"><h3>客户端归因</h3><p>可选 mimic 模式完整镜像 ZCode 归因头与账号 ID，闲时 50% 积分优惠与套餐权益同等生效。</p></div>
-      <div class="card" data-l="en"><h3>Client attribution</h3><p>Optional mimic mode mirrors the ZCode attribution headers and account ID, so off-peak 50% credit discounts apply equally.</p></div>
-      <div class="card" data-l="zh"><h3>局域网共享</h3><p><code>0.0.0.0</code> 监听 + 访问口令：同网段设备共用一个网关，口令一键轮换。</p></div>
-      <div class="card" data-l="en"><h3>LAN sharing</h3><p><code>0.0.0.0</code> listener with a mandatory access token: share one gateway across devices, rotate the token in one command.</p></div>
-      <div class="card" data-l="zh"><h3>按需启动</h3><p>OMP 解析凭据时自动拉起网关，取口令永不阻塞（≤2s），无需手工常驻服务。</p></div>
-      <div class="card" data-l="en"><h3>On-demand startup</h3><p>OMP starts the gateway automatically when resolving credentials; token resolution never blocks (≤2s).</p></div>
-      <div class="card" data-l="zh"><h3>单二进制</h3><p>纯 Go 标准库实现，无第三方依赖；<code>go build</code> 一步产出，交叉编译随意。</p></div>
-      <div class="card" data-l="en"><h3>Single binary</h3><p>Pure Go standard library, no third-party dependencies; one <code>go build</code>, cross-compile freely.</p></div>
-    </div>
-  </div>
-</section>
-
-<section id="arch" class="alt">
-  <div class="wrap">
-    <h2 data-l="zh">架构</h2><h2 data-l="en">Architecture</h2>
-    <div class="diagram">
-      <div class="node"><b data-l="zh">OMP / 任意客户端</b><b data-l="en">OMP / any client</b><small>OpenAI<br>127.0.0.1:7864 / LAN</small></div>
-      <div class="arrow">→</div>
-      <div class="node gw"><b>glm-zcode-2api</b><small data-l="zh">鉴权 · 体积上限<br>OpenAI ⇄ Anthropic 转换<br>签名思考回放缓存</small><small data-l="en">auth · body limit<br>OpenAI ⇄ Anthropic translation<br>signed-thinking replay cache</small></div>
-      <div class="arrow">→</div>
-      <div class="node"><b>BigModel Coding Plan</b><small>open.bigmodel.cn/api/anthropic<br>Anthropic Messages (SSE)</small></div>
-    </div>
-    <div class="diagram" style="margin-top:12px;border-style:dashed">
-      <span class="arrow dash">⇢</span>
-      <div class="node" style="border-style:dashed"><b>~/.zcode/v2/config.json</b><small data-l="zh">网关只读：apiKey + baseURL<br>凭据不复制、App 文件不改写</small><small data-l="en">read-only: apiKey + baseURL<br>nothing copied, app files untouched</small></div>
-      <span style="color:var(--muted);font-size:13px" data-l="zh">凭据只在这台机器上流转</span>
-      <span style="color:var(--muted);font-size:13px" data-l="en">credentials never leave this machine</span>
-    </div>
-  </div>
-</section>
-
-<section id="why">
-  <div class="wrap">
-    <h2 data-l="zh">为什么不是"直接填 baseURL"</h2><h2 data-l="en">Why not "just set the baseURL"</h2>
-    <div class="tbl-wrap"><table>
-      <thead><tr>
-        <th data-l="zh">方案</th><th data-l="zh">问题</th>
-        <th data-l="en">Option</th><th data-l="en">Problem</th>
-      </tr></thead>
-      <tbody>
-        <tr data-l="zh"><td>OMP 直连 <code>open.bigmodel.cn/api/anthropic</code></td><td>OpenAI 客户端说不了 Anthropic 协议；请求无 ZCode 归因头，闲时优惠按普通调用记账</td></tr>
-        <tr data-l="en"><td>Point OMP straight at <code>open.bigmodel.cn/api/anthropic</code></td><td>OpenAI clients don't speak Anthropic; no ZCode attribution headers, so off-peak perks are billed as ordinary usage</td></tr>
-        <tr data-l="zh"><td>其他 zcode2api 类网关</td><td>本项目额外做了三件事：<strong>归因头镜像</strong>（闲时优惠同权）、<strong>签名思考回放</strong>（工具循环必需）、<strong>凭据零搬运</strong>（ZCode 重新登录自动跟随）</td></tr>
-        <tr data-l="en"><td>Other zcode2api-style gateways</td><td>This project adds three things: <strong>attribution mirroring</strong> (same off-peak treatment), <strong>signed-thinking replay</strong> (required by tool loops), <strong>zero credential copying</strong> (follows ZCode re-logins)</td></tr>
-      </tbody>
-    </table></div>
-  </div>
-</section>
 
 <section id="start" class="alt">
   <div class="wrap">
@@ -205,14 +121,14 @@
       <div class="terminal"><div class="bar"><i></i><i></i><i></i></div>
 <pre><span class="p">$</span> curl -sN http://127.0.0.1:7864/v1/chat/completions \
     -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-    -d '{"model":"glm-5.3-flash","messages":[{"role":"user","content":"hi"}],"stream":true}'
+    -d '{"model":"$MODEL","messages":[{"role":"user","content":"hi"}],"stream":true}'
 
 data: {"choices":[{"delta":{"role":"assistant"}}]}
-data: {"choices":[{"delta":{"reasoning_content":"让我想想…"}}]}
+data: {"choices":[{"delta":{"reasoning_content":"…"}}]}
 data: {"choices":[{"delta":{"content":"你好！"}}]}
 data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
 data: [DONE]</pre></div>
-      <p style="color:var(--muted);font-size:13.5px;margin-bottom:18px">流式 SSE：角色帧 → <code>reasoning_content</code> 思考增量 → 内容增量 → <code>finish_reason</code> → <code>[DONE]</code>。</p>
+      <p style="color:var(--muted);font-size:13.5px;margin-bottom:18px"><code>$MODEL</code> 换成你套餐里的任意模型；流式帧顺序：角色 → <code>reasoning_content</code> → 内容 → <code>finish_reason</code> → <code>[DONE]</code>。</p>
       <div class="cols">
         <div class="col">
           <h3>1 · 构建并启动</h3>
@@ -228,12 +144,15 @@ python3 scripts/omp-gateway.py start
 curl -s http://127.0.0.1:7864/healthz</pre>
         </div>
         <div class="col">
-          <h3>2 · 管理命令</h3>
-<pre>python3 scripts/omp-gateway.py status   <span class="c"># 运行状态</span>
-python3 scripts/omp-gateway.py restart  <span class="c"># 重新登录后同步</span>
-python3 scripts/omp-gateway.py stop
-python3 scripts/omp-gateway.py token    <span class="c"># 打印访问口令</span></pre>
-          <p style="color:var(--muted);font-size:13.5px;margin-top:10px">OMP 解析凭据时若网关未运行会自动拉起，无需常驻。</p>
+          <h3>2 · 接入 OMP（oh-my-pi）</h3>
+<pre><span class="c"># ~/.omp/agent/models.yml</span>
+zcode:
+  baseUrl: http://127.0.0.1:7864/v1
+  api: openai-completions
+  apiKey: <span class="s">'!~/projects/glm-zcode-2api/
+    scripts/omp-gateway.py token'</span>
+  authHeader: true</pre>
+          <p style="color:var(--muted);font-size:13.5px;margin-top:10px">OMP 解析凭据时若网关未运行会自动拉起（≤2s），无需常驻。</p>
         </div>
       </div>
     </div>
@@ -241,14 +160,14 @@ python3 scripts/omp-gateway.py token    <span class="c"># 打印访问口令</sp
       <div class="terminal"><div class="bar"><i></i><i></i><i></i></div>
 <pre><span class="p">$</span> curl -sN http://127.0.0.1:7864/v1/chat/completions \
     -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-    -d '{"model":"glm-5.3-flash","messages":[{"role":"user","content":"hi"}],"stream":true}'
+    -d '{"model":"$MODEL","messages":[{"role":"user","content":"hi"}],"stream":true}'
 
 data: {"choices":[{"delta":{"role":"assistant"}}]}
-data: {"choices":[{"delta":{"reasoning_content":"Let me think…"}}]}
+data: {"choices":[{"delta":{"reasoning_content":"…"}}]}
 data: {"choices":[{"delta":{"content":"Hi there!"}}]}
 data: {"choices":[{"delta":{},"finish_reason":"stop"}]}
 data: [DONE]</pre></div>
-      <p style="color:var(--muted);font-size:13.5px;margin-bottom:18px">Streaming SSE: role frame → <code>reasoning_content</code> deltas → content deltas → <code>finish_reason</code> → <code>[DONE]</code>.</p>
+      <p style="color:var(--muted);font-size:13.5px;margin-bottom:18px">Replace <code>$MODEL</code> with any model your plan provides; stream frame order: role → <code>reasoning_content</code> → content → <code>finish_reason</code> → <code>[DONE]</code>.</p>
       <div class="cols">
         <div class="col">
           <h3>1 · Build &amp; run</h3>
@@ -264,23 +183,45 @@ python3 scripts/omp-gateway.py start
 curl -s http://127.0.0.1:7864/healthz</pre>
         </div>
         <div class="col">
-          <h3>2 · Management</h3>
-<pre>python3 scripts/omp-gateway.py status   <span class="c"># runtime status</span>
-python3 scripts/omp-gateway.py restart  <span class="c"># after re-login</span>
-python3 scripts/omp-gateway.py stop
-python3 scripts/omp-gateway.py token    <span class="c"># print access token</span></pre>
-          <p style="color:var(--muted);font-size:13.5px;margin-top:10px">OMP starts the gateway automatically when resolving credentials — no daemon required.</p>
+          <h3>2 · Hook up OMP (oh-my-pi)</h3>
+<pre><span class="c"># ~/.omp/agent/models.yml</span>
+zcode:
+  baseUrl: http://127.0.0.1:7864/v1
+  api: openai-completions
+  apiKey: <span class="s">'!~/projects/glm-zcode-2api/
+    scripts/omp-gateway.py token'</span>
+  authHeader: true</pre>
+          <p style="color:var(--muted);font-size:13.5px;margin-top:10px">OMP starts the gateway automatically when resolving credentials (≤2s) — no daemon required.</p>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<section id="attribution">
+<section id="arch">
+  <div class="wrap">
+    <h2 data-l="zh">架构</h2><h2 data-l="en">Architecture</h2>
+    <div class="diagram">
+      <div class="node"><b data-l="zh">OMP / 任意客户端</b><b data-l="en">OMP / any client</b><small>OpenAI<br>127.0.0.1:7864 / LAN</small></div>
+      <div class="arrow">→</div>
+      <div class="node gw"><b>glm-zcode-2api</b><small data-l="zh">鉴权 · 体积上限<br>OpenAI ⇄ Anthropic 转换<br>签名思考回放缓存</small><small data-l="en">auth · body limit<br>OpenAI ⇄ Anthropic translation<br>signed-thinking replay cache</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Coding Plan upstream</b><small>Anthropic Messages (SSE)</small></div>
+    </div>
+    <div class="diagram" style="margin-top:12px;border-style:dashed">
+      <span class="arrow dash">⇢</span>
+      <div class="node" style="border-style:dashed"><b>~/.zcode/v2/config.json</b><small data-l="zh">网关只读：apiKey + baseURL<br>凭据不复制、App 文件不改写</small><small data-l="en">read-only: apiKey + baseURL<br>nothing copied, app files untouched</small></div>
+      <span style="color:var(--muted);font-size:13px" data-l="zh">凭据只在这台机器上流转</span>
+      <span style="color:var(--muted);font-size:13px" data-l="en">credentials never leave this machine</span>
+    </div>
+  </div>
+</section>
+
+<section id="attribution" class="alt">
   <div class="wrap">
     <h2 data-l="zh">闲时优惠，与 App 同权</h2><h2 data-l="en">Off-peak discounts, same treatment as the app</h2>
-    <p style="color:var(--muted);max-width:860px;margin-bottom:18px" data-l="zh">新版 GLM Coding Plan 按积分计费，<strong>非高峰时段（含周末全天）调用只消耗 50% 标准积分</strong>。这类权益按<strong>客户端归因</strong>判定——网关的 <code>mimic_client</code> 模式（启动器默认开启）把 ZCode 的归因头与账号 ID 原样带给上游，代理流量与 App 内流量同等对待：</p>
-    <p style="color:var(--muted);max-width:860px;margin-bottom:18px" data-l="en">The new GLM Coding Plan is credit-based: <strong>calls during off-peak hours (including weekends) consume only 50% of standard credits</strong>. These perks are decided by <strong>client attribution</strong> — with <code>mimic_client</code> (enabled by the launcher by default), the gateway mirrors ZCode's attribution headers and account ID, so proxied traffic gets the same treatment:</p>
+    <p style="color:var(--muted);max-width:860px;margin-bottom:18px" data-l="zh">GLM Coding Plan 按积分计费，<strong>非高峰时段（含周末全天）调用只消耗 50% 标准积分</strong>。这类权益按<strong>客户端归因</strong>判定——网关的 <code>mimic_client</code> 模式（启动器默认开启）把 ZCode 的归因头与账号 ID 原样带给上游，代理流量与 App 内流量同等对待：</p>
+    <p style="color:var(--muted);max-width:860px;margin-bottom:18px" data-l="en">The GLM Coding Plan is credit-based: <strong>off-peak calls (weekends included) consume only 50% of standard credits</strong>. These perks are decided by <strong>client attribution</strong> — with <code>mimic_client</code> (enabled by the launcher by default), the gateway mirrors ZCode's attribution headers and account ID, so proxied traffic gets the same treatment:</p>
     <div class="chips">
       <span>user-agent: ZCode/3.14.1</span><span>·</span>
       <span>x-zcode-agent: glm</span><span>·</span>
@@ -294,44 +235,13 @@ python3 scripts/omp-gateway.py token    <span class="c"># print access token</sp
   </div>
 </section>
 
-<section id="faq" class="alt">
-  <div class="wrap">
-    <h2>FAQ</h2>
-    <div data-l="zh">
-      <details><summary>报 429 / 1310「已达使用上限」？</summary><div class="a">计划配额确实用完了，错误文案原样透传（含重置时间）。等重置后自动恢复；网关不做任何伪装或绕过。</div></details>
-      <details><summary>HTTP 401？</summary><div class="a">上游密钥失效——在 ZCode 里重新登录后 <code>restart</code>。网关每次请求前会自动重读 ZCode 配置，多数情况无需重启。</div></details>
-      <details><summary>访问口令是什么？泄漏了怎么办？</summary><div class="a">口令在 <code>~/.local/state/glm-zcode-2api/client.key</code>（0600），等同账号额度的使用权。泄漏后删除该文件再 <code>restart</code> 即自动轮换，客户端无需改配置。</div></details>
-      <details><summary>局域网其他设备怎么用？</summary><div class="a">网关默认监听 <code>0.0.0.0:7864</code>。其他设备把 baseUrl 指到 <code>http://&lt;本机IP&gt;:7864/v1</code>，apiKey 填本机 <code>client.key</code> 内容即可。除 <code>/healthz</code> 外全部接口要求口令。</div></details>
-      <details><summary>思考能关掉吗？为什么关了还有 reasoning？</summary><div class="a">可以：<code>reasoning_effort: "off"</code> 或配置 <code>thinking.enabled=false</code>，网关发 <code>thinking.type=disabled</code>。实测上游在 disabled 下仍会输出一小段思考，网关如实透传、不做抹除。</div></details>
-      <details><summary>OMP 报 No API key found for zcode？</summary><div class="a">不是要你配 key——是取口令的命令失败了。常见于网关正在重启、或 OMP 会话缓存了旧目录路径；重启该 OMP 会话即可。新版启动器取口令永不阻塞（≤2s）。</div></details>
-      <details><summary>支持图片输入吗？</summary><div class="a">已实现 OpenAI <code>image_url</code>（data URL / http(s) URL / base64）到 Anthropic image block 的转换；<code>glm-5.3-flash</code> 声明支持视觉，端到端效果以实际使用为准。</div></details>
-    </div>
-    <div data-l="en">
-      <details><summary>HTTP 429 / 1310 "usage limit reached"?</summary><div class="a">Your plan quota is genuinely exhausted; the error (including reset time) passes through verbatim. It recovers automatically after the reset — the gateway never disguises or bypasses anything.</div></details>
-      <details><summary>HTTP 401?</summary><div class="a">The upstream key is stale — sign into ZCode again, then <code>restart</code>. The gateway re-reads the ZCode config on every request, so most changes need no restart.</div></details>
-      <details><summary>What is the access token? What if it leaks?</summary><div class="a">It lives at <code>~/.local/state/glm-zcode-2api/client.key</code> (0600) and equals usage rights to your plan. If leaked, delete the file and <code>restart</code> — a new token is minted and clients need no changes.</div></details>
-      <details><summary>How do other LAN devices use it?</summary><div class="a">The gateway listens on <code>0.0.0.0:7864</code>. Point other devices at <code>http://&lt;host-ip&gt;:7864/v1</code> with the host's <code>client.key</code> as the apiKey. Everything except <code>/healthz</code> requires the token.</div></details>
-      <details><summary>Can thinking be turned off? Why is there still reasoning?</summary><div class="a">Yes: <code>reasoning_effort: "off"</code> or <code>thinking.enabled=false</code> sends <code>thinking.type=disabled</code>. The upstream still emits a short thinking trace when disabled; the gateway passes it through untouched.</div></details>
-      <details><summary>OMP says "No API key found for zcode"?</summary><div class="a">You are not supposed to configure a key — the token command failed. Typical while the gateway restarts, or when an OMP session cached an old path; restart that OMP session. The launcher never blocks on token resolution (≤2s).</div></details>
-      <details><summary>Image inputs?</summary><div class="a">OpenAI <code>image_url</code> parts (data URLs / http(s) URLs / base64) are translated to Anthropic image blocks; <code>glm-5.3-flash</code> declares vision support — verify end-to-end with your workload.</div></details>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <div class="note" data-l="zh"> <strong>合规须知</strong>：本项目为非官方网关，将你本人的 ZCode 套餐作为上游，仅限本人账号、本机 / 私有环境自用，请遵守套餐条款；上游接口与权益由服务方控制，可能随时变化。</div>
-    <div class="note" data-l="en"> <strong>Disclaimer</strong>: unofficial gateway using your own ZCode plan as upstream. Personal, local use only and in line with your plan terms; the upstream API and perks are controlled by the provider and may change at any time.</div>
-  </div>
-</section>
-
 <footer>
   <div class="wrap">
     <div>MIT License · © 2026 glm-zcode-2api contributors</div>
     <div>
       <a href="https://github.com/binggao1230/glm-zcode-2api/blob/main/README.md" data-l="zh">README（中文）</a>
       <a href="https://github.com/binggao1230/glm-zcode-2api/blob/main/README.en.md" data-l="en">README (EN)</a>
-      · <a href="https://github.com/binggao1230/glm-zcode-2api">GitHub</a> · <a href="https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash">GLM-5.3-Flash docs</a>
+      · <a href="https://github.com/binggao1230/glm-zcode-2api">GitHub</a>
     </div>
   </div>
 </footer>
