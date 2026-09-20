@@ -201,10 +201,11 @@ def prepare():
     return [m["id"] for m in models]
 
 
-def start():
+def start(wait=True, wait_seconds=40):
     pid = owned_pid()
     if pid:
-        print(json.dumps({"running": True, "pid": pid, "health": health()}))
+        if wait:
+            print(json.dumps({"running": True, "pid": pid, "health": health()}))
         return
     if not BINARY.is_file():
         raise RuntimeError("Build bin/glm-zcode-proxy first")
@@ -222,18 +223,20 @@ def start():
                                         if not k.startswith("Z2A_")})
     try:
         secure_write(ROOT / "gateway.pid", str(process.pid) + "\n")
-        for _ in range(40):
+        for _ in range(wait_seconds * 4):
             if process.poll() is not None:
                 raise RuntimeError("Gateway exited; inspect its local log")
             status = health()
             if status:
                 audit("gateway_started", pid=process.pid, address=BASE)
-                print(json.dumps({"running": True, "pid": process.pid,
-                                  "base_url": BASE + "/v1", "models": models}))
+                if wait:
+                    print(json.dumps({"running": True, "pid": process.pid,
+                                      "base_url": BASE + "/v1", "models": models}))
                 return
             time.sleep(0.25)
         audit("gateway_start_timeout", pid=process.pid)
-        raise RuntimeError("Gateway health check did not succeed")
+        if wait:
+            raise RuntimeError("Gateway health check did not succeed")
     except BaseException:
         # Keep no half-started process alive if bookkeeping failed.
         if process.poll() is None:
@@ -276,9 +279,11 @@ def main():
     with open(ROOT / "control.lock", "a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         if args.command == "token":
-            # OMP consumes stdout as a credential. Keep lifecycle output off it.
+            # OMP consumes stdout as a credential and bounds how long the
+            # command may take: never block on a cold start. The key is
+            # printed immediately while the gateway comes up in parallel.
             with contextlib.redirect_stdout(io.StringIO()):
-                start()
+                start(wait=False, wait_seconds=2)
             print((ROOT / "client.key").read_text().strip())
         elif args.command == "status":
             print(json.dumps({"running": bool(owned_pid()), "health": health(),
