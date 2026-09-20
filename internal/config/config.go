@@ -35,9 +35,12 @@ type Upstream struct {
 	// MimicClient sends the Z Code client's attribution headers so that plan
 	// promotions (off-peak discounts, free flash windows) apply to proxied
 	// requests the same way they do inside the app.
-	MimicClient          bool     `json:"mimic_client"`
-	AppVersion           string   `json:"app_version"`
-	UserID               string   `json:"user_id"`
+	MimicClient bool   `json:"mimic_client"`
+	AppVersion  string `json:"app_version"`
+	UserID      string `json:"user_id"`
+	// ClientTimezone is the IANA zone sent as x-client-timezone. Empty means
+	// detect the host zone.
+	ClientTimezone       string   `json:"client_timezone"`
 	AnthropicVersion     string   `json:"anthropic_version"`
 	UserAgent            string   `json:"user_agent"`
 	Beta                 []string `json:"beta"`
@@ -123,6 +126,9 @@ func (c *Config) applyEnv() {
 	}
 	if v := os.Getenv("Z2A_CREDENTIAL_CONFIG_PATH"); v != "" {
 		c.Upstream.CredentialConfigPath = v
+	}
+	if v := os.Getenv("Z2A_CLIENT_TIMEZONE"); v != "" {
+		c.Upstream.ClientTimezone = v
 	}
 	if v := os.Getenv("Z2A_USER_AGENT"); v != "" {
 		c.Upstream.UserAgent = v

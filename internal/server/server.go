@@ -293,7 +293,7 @@ func (s *Server) clientFor(cred credential.Credential) *upstream.Client {
 		client.APIKey = cred.APIKey
 	}
 	if s.cfg.Upstream.MimicClient {
-		client.Headers = mimicHeaders(s.cfg.Upstream.AppVersion)
+		client.Headers = mimicHeaders(s.cfg.Upstream.AppVersion, s.cfg.Upstream.ClientTimezone)
 		client.UserAgent = client.Headers["user-agent"]
 	}
 	return &client
@@ -302,9 +302,12 @@ func (s *Server) clientFor(cred credential.Credential) *upstream.Client {
 // mimicHeaders mirrors the attribution header set the Z Code app itself sends
 // on model requests, so the upstream applies the same plan treatment
 // (off-peak discounts, free flash windows) as it does for the app.
-func mimicHeaders(appVersion string) map[string]string {
+func mimicHeaders(appVersion, timezone string) map[string]string {
 	if appVersion == "" {
 		appVersion = "3.14.0"
+	}
+	if timezone == "" {
+		timezone = currentTimeZone()
 	}
 	return map[string]string{
 		"http-referer":         "https://zcode.z.ai",
@@ -313,7 +316,7 @@ func mimicHeaders(appVersion string) map[string]string {
 		"x-title":              "Z Code@electron",
 		"x-release-channel":    "production",
 		"x-client-language":    "en-US",
-		"x-client-timezone":    currentTimeZone(),
+		"x-client-timezone":    timezone,
 		"x-zcode-agent":        "glm",
 		"x-platform":           runtime.GOOS + "-" + runtime.GOARCH,
 		"x-os-category":        osCategory(),

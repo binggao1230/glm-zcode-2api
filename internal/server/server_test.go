@@ -408,6 +408,20 @@ func TestHealthReportsMissingCredential(t *testing.T) {
 	}
 }
 
+func TestMimicTimezoneIsConfigurable(t *testing.T) {
+	headers := mimicHeaders("3.14.1", "Asia/Shanghai")
+	if headers["x-client-timezone"] != "Asia/Shanghai" {
+		t.Fatalf("configured timezone ignored: %q", headers["x-client-timezone"])
+	}
+	if headers["user-agent"] != "ZCode/3.14.1" || headers["x-zcode-app-version"] != "3.14.1" {
+		t.Fatalf("app version not mirrored: %+v", headers)
+	}
+	detected := mimicHeaders("3.14.1", "")["x-client-timezone"]
+	if detected == "" || strings.Contains(detected, "Local") {
+		t.Fatalf("host timezone detection produced %q", detected)
+	}
+}
+
 func tail(s string, n int) string {
 	if len(s) <= n {
 		return s

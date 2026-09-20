@@ -147,6 +147,7 @@ omp models zcode
 | `upstream.mimic_client` | 启动器写 `true` | 以 Z Code 客户端身份发送归因头（见下节）；代码默认 `false` |
 | `upstream.app_version` | 读取 App 实际版本 | 归因头里的 `ZCode/<version>`（如 `3.14.1`） |
 | `upstream.user_id` | 从套餐 JWT 提取 | 随请求发送的 `metadata.user_id`（账号 ID） |
+| `upstream.client_timezone` | 空 = 按本机探测 | 归因头 `x-client-timezone` 用的 IANA 时区（如 `Europe/Paris`、`Asia/Shanghai`），可用 `Z2A_CLIENT_TIMEZONE` 覆盖 |
 | `thinking.enabled` | `true` | 默认是否发送 `thinking.type=enabled` |
 | `thinking.effort` | `max` | 默认档位 `low` \| `medium` \| `high` \| `max`（对齐 Z Code 默认档） |
 | `thinking.prompt_cache` | `true` | 给 system 打 prompt cache 断点 |
@@ -154,7 +155,7 @@ omp models zcode
 
 **思考档位由客户端覆盖配置**：请求带 `reasoning_effort`（OMP 的 `--thinking` 即走此字段）或 `reasoning.effort` 时以客户端为准；`minimal`→`low`、`xhigh`→`max`，`off`/`none`/`disabled` 或 `thinking.type=disabled` 则关闭（发送 `thinking.type=disabled`，实测上游仍会输出一小段 thinking，网关如实透传）。未指定时用上表默认值。
 
-环境变量覆盖（非空才生效）：`Z2A_LISTEN`、`Z2A_API_KEY`、`Z2A_UPSTREAM_BASE_URL`、`Z2A_UPSTREAM_PROVIDER_ID`、`Z2A_UPSTREAM_API_KEY`、`Z2A_CREDENTIAL_CONFIG_PATH`、`Z2A_USER_AGENT`、`Z2A_MAX_BODY_MB`、`Z2A_THINKING_ENABLED`、`Z2A_THINKING_EFFORT`、`Z2A_IDLE_TIMEOUT_SECONDS`。启动器会过滤掉这些变量，避免环境意外改变上游目的地。
+环境变量覆盖（非空才生效）：`Z2A_LISTEN`、`Z2A_API_KEY`、`Z2A_UPSTREAM_BASE_URL`、`Z2A_UPSTREAM_PROVIDER_ID`、`Z2A_UPSTREAM_API_KEY`、`Z2A_CREDENTIAL_CONFIG_PATH`、`Z2A_CLIENT_TIMEZONE`、`Z2A_USER_AGENT`、`Z2A_MAX_BODY_MB`、`Z2A_THINKING_ENABLED`、`Z2A_THINKING_EFFORT`、`Z2A_IDLE_TIMEOUT_SECONDS`。启动器会过滤掉这些变量，避免环境意外改变上游目的地。
 
 ## 闲时优惠与请求归因
 
@@ -166,7 +167,7 @@ omp models zcode
 user-agent: ZCode/<App 版本>        http-referer: https://zcode.z.ai
 x-zcode-agent: glm                  x-zcode-app-version / x-title / x-release-channel
 x-platform: darwin-arm64            x-os-category / x-os-version（内核版本）
-x-client-language / x-client-timezone（本机 IANA 时区）
+x-client-language / x-client-timezone（默认探测本机 IANA 时区，可用 `upstream.client_timezone` 指定）
 x-request-id / x-zcode-trace-id / x-query-id / x-session-id（每请求生成）
 metadata.user_id: <账号 ID>
 ```
