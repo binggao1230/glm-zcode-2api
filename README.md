@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://zeabur.com/logo.svg" width="120" alt="glm-zcode-2api">
+  <img src="docs/logo.svg" width="140" alt="glm-zcode-2api">
 </p>
 
 <h1 align="center">glm-zcode-2api</h1>

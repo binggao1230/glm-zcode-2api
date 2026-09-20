@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>glm-zcode-2api · 本地原生的 ZCode → OpenAI 兼容网关 / A local-native ZCode → OpenAI gateway</title>
+<title>glm-zcode-2api · 把 ZCode 订阅变成 OpenAI 兼容 API / Turn your ZCode plan into an OpenAI-compatible API</title>
 <meta name="description" content="本机反向代理：把 ZCode 订阅原生变成 OpenAI 兼容 API，凭据零搬运，工具循环与思考档位完整透传。A local reverse proxy that exposes the ZCode plan as an OpenAI-compatible API.">
 <style>
   :root{
@@ -35,8 +35,8 @@
     radial-gradient(520px 240px at 78% 10%,rgba(139,123,255,.10),transparent 70%)}
   .hero h1{font-size:42px;line-height:1.18;letter-spacing:-.5px}
   .hero h1 .grad{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
-  .hero p.sub{color:var(--muted);font-size:18px;margin:18px auto 8px;max-width:720px}
-  .badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:30px}
+  .hero p.sub{color:var(--muted);font-size:18px;margin:22px auto 30px;max-width:760px}
+  .badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:36px}
   .badge{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 13px;font-size:13px;color:var(--muted)}
   .badge b{color:var(--text);font-weight:600}
   .cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
@@ -76,7 +76,7 @@
 
 <header class="site">
   <div class="wrap">
-    <div class="logo">glm<span>-zcode-2api</span></div>
+    <div class="logo" style="display:flex;align-items:center;gap:9px"><img src="logo.svg" width="26" height="26" alt="" style="border-radius:6px">glm<span>-zcode-2api</span></div>
     <nav>
       <a href="https://github.com/binggao1230/glm-zcode-2api">GitHub</a>
       <span class="lang">
@@ -90,16 +90,16 @@
 <div class="hero">
   <div class="wrap">
     <div data-l="zh">
-      <h1>本地原生：<span class="grad">ZCode 订阅</span>即 OpenAI 兼容 API</h1>
-      <p class="sub">网关跑在本机上，直接以你的 ZCode 订阅为上游——开箱即用，凭据零搬运，套餐权益照常生效。模型以套餐实际提供为准。</p>
+      <h1>你的 ZCode 订阅，就是<span class="grad">OpenAI 兼容 API</span></h1>
+      <p class="sub">本地原生的反向代理：跑在你自己的机器上，凭据不外流，开箱即用；闲时积分优惠与套餐权益照常生效，可用模型随套餐而定。</p>
       <div class="cta">
         <a class="btn primary" href="#start">快速开始</a>
         <a class="btn ghost" href="https://github.com/binggao1230/glm-zcode-2api">GitHub 仓库 →</a>
       </div>
     </div>
     <div data-l="en">
-      <h1>Local-native: your <span class="grad">ZCode plan</span> is the API</h1>
-      <p class="sub">The gateway runs on your machine and uses your ZCode plan as upstream — works out of the box, zero credential copying, plan perks included. Models follow whatever your plan provides.</p>
+      <h1>Your ZCode plan <span class="grad">is an OpenAI-compatible API</span></h1>
+      <p class="sub">A local-native proxy: it runs on your own machine and talks to your ZCode plan directly — out of the box, credentials never leave it. Off-peak perks and plan entitlements included; models follow your plan.</p>
       <div class="cta">
         <a class="btn primary" href="#start">Quick Start</a>
         <a class="btn ghost" href="https://github.com/binggao1230/glm-zcode-2api">GitHub repo →</a>
