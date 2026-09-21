@@ -175,7 +175,7 @@ metadata.user_id: {"device_id":"<id>","account_uuid":"","session_id":"<id>"}
 
 `app_version` is read from `ZCode.app/Contents/Info.plist`, the device id is generated once and persisted in `~/.local/state/glm-zcode-2api/device.key`. With mimic off, the gateway calls upstream with only `x-api-key`, identifying as itself.
 
-To verify: run a few rounds inside the off-peak window and compare the ZCode usage page / upstream billing against 50% (run the same volume with mimic off as a control).
+Measured window: `python3 scripts/omp-gateway.py usage` reads the official credit meter directly (5-hour window + weekly window) and shows the off-peak state (Beijing time 23:00-next day 09:00). Live measurement note: traffic inside the window still accrues credits (the official doc describes a 50% off-peak discount, not free usage); judge the discount by the usage page numbers.
 
 ## LAN access
 
