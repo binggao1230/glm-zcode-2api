@@ -41,6 +41,9 @@ type Upstream struct {
 	// model traffic is routed through (plan entitlements are validated there).
 	// Empty disables the rewrite and talks to the provider endpoint directly.
 	GatewayOrigin string `json:"gateway_origin"`
+	// MirrorAuth sends "Authorization: Bearer <plan key>" alongside x-api-key,
+	// mirroring the official client. Empty/true default; set false to opt out.
+	MirrorAuth *bool `json:"mirror_auth"`
 	// DeviceID is the persistent per-install device id sent as x-device-mid and
 	// embedded in metadata.user_id, mirroring the official client.
 	DeviceID string `json:"device_id"`
@@ -79,6 +82,7 @@ func Default() *Config {
 		Server: Server{MaxBodyMB: 16},
 		Upstream: Upstream{
 			GatewayOrigin:        "https://zcode.z.ai",
+			MirrorAuth:           boolPtr(true),
 			ProviderID:           "builtin:bigmodel-coding-plan",
 			AnthropicVersion:     "2023-06-01",
 			UserAgent:            "glm-zcode-2api/0.1",
@@ -142,6 +146,11 @@ func (c *Config) applyEnv() {
 	}
 	if v := os.Getenv("Z2A_DEVICE_ID"); v != "" {
 		c.Upstream.DeviceID = v
+	}
+	if v := os.Getenv("Z2A_MIRROR_AUTH"); v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			c.Upstream.MirrorAuth = &b
+		}
 	}
 	if v := os.Getenv("Z2A_USER_AGENT"); v != "" {
 		c.Upstream.UserAgent = v
@@ -230,6 +239,13 @@ func (c *Config) ModelIDs() []string {
 	}
 	return ids
 }
+
+// MirrorAuthEnabled resolves the mirror-auth switch (default on).
+func (u Upstream) MirrorAuthEnabled() bool {
+	return u.MirrorAuth == nil || *u.MirrorAuth
+}
+
+func boolPtr(v bool) *bool { return &v }
 
 func (u Upstream) Timeout() time.Duration {
 	return time.Duration(u.TimeoutSeconds) * time.Second

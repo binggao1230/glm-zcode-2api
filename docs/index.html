@@ -301,10 +301,11 @@ python3 scripts/omp-gateway.py usage    # live plan meter</pre>
       <span>http-referer: zcode.z.ai</span><span>·</span>
       <span>x-os-version: 27.0.0</span><span>·</span>
       <span>x-device-mid: &lt;device id&gt;</span><span>·</span>
-      <span>metadata.user_id: {"device_id":…,"session_id":…}</span>
+      <span>metadata.user_id: {"device_id":…,"session_id":…}</span><span>·</span>
+      <span>authorization: Bearer &lt;plan key&gt;</span>
     </div>
-    <p style="color:var(--muted);font-size:13.5px;margin-top:12px" data-l="zh">版本号自动读取 ZCode.app，设备 ID 首次生成后持久化，时区默认探测本机（可用 <code>upstream.client_timezone</code> 指定）；<code>upstream.gateway_origin</code> 置空可改为直连模型服务。</p>
-    <p style="color:var(--muted);font-size:13.5px;margin-top:12px" data-l="en">The version is read from ZCode.app's Info.plist, the device id is generated once and persisted, and the timezone is detected from the host (override with <code>upstream.client_timezone</code>); set <code>upstream.gateway_origin</code> empty to call the provider directly.</p>
+    <p style="color:var(--muted);font-size:13.5px;margin-top:12px" data-l="zh">版本号自动读取 ZCode.app，设备 ID 首次生成后持久化，时区默认探测本机（可用 <code>upstream.client_timezone</code> 指定）；鉴权与官方一致——<code>x-api-key</code> 与 <code>Authorization: Bearer &lt;套餐 key&gt;</code> 同时发送。<code>upstream.gateway_origin</code> 置空可改为直连模型服务。</p>
+    <p style="color:var(--muted);font-size:13.5px;margin-top:12px" data-l="en">The version is read from ZCode.app's Info.plist, the device id is generated once and persisted, and the timezone is detected from the host (override with <code>upstream.client_timezone</code>). Auth mirrors the official client: both <code>x-api-key</code> and <code>Authorization: Bearer &lt;plan key&gt;</code>. Set <code>upstream.gateway_origin</code> empty to call the provider directly.</p>
   </div>
 </section>
 

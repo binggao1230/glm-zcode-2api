@@ -305,6 +305,7 @@ func (s *Server) clientFor(cred credential.Credential) *upstream.Client {
 	if client.GatewayOrigin == "" {
 		client.GatewayOrigin = s.cfg.Upstream.GatewayOrigin
 	}
+	client.MirrorAuth = s.cfg.Upstream.MirrorAuthEnabled()
 	if s.cfg.Upstream.MimicClient {
 		client.Headers = mimicHeaders(s.cfg.Upstream.AppVersion, s.cfg.Upstream.ClientTimezone, s.deviceID)
 		client.UserAgent = client.Headers["user-agent"]

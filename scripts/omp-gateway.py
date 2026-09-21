@@ -174,6 +174,7 @@ def prepare():
         # gateway, where plan entitlements are validated.
         "gateway_origin": "https://zcode.z.ai",
         "device_id": device_id(),
+        "mirror_auth": True,
         "anthropic_version": "2023-06-01",
         # Identify proxied requests as the ZCode client so plan promotions
         # (off-peak discounts, free flash windows) apply the same way.
