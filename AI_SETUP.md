@@ -64,11 +64,13 @@ python3 scripts/omp-gateway.py capture          # listens on 127.0.0.1:7865
 ZCODE_ENDPOINT_ORIGIN=http://127.0.0.1:7865 open -a ZCode --env ZCODE_ENDPOINT_ORIGIN=http://127.0.0.1:7865
 ```
 
-Send one message in the client; every request (path, headers, body hash and
-preview) is appended to `~/.local/state/glm-zcode-2api/capture.jsonl` (0600).
-Compare it against what this gateway sends to confirm the two are identical.
-The capture file contains live credentials — treat it as secret and delete it
-when done.
+Every platform request (path, headers, body hash and preview) is appended to
+`~/.local/state/glm-zcode-2api/capture.jsonl` (0600). Note: the desktop client
+resolves the origin for *model* requests elsewhere, so this override captures
+platform RPCs (event reports, update checks, billing) but not model traffic —
+for the model request shape, read the client's own log under
+`~/.zcode/cli/rollout/model-io-*.jsonl` instead. The capture file contains live
+credentials — treat it as secret and delete it when done.
 
 ## Discipline
 

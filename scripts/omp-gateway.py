@@ -280,6 +280,12 @@ def capture(port=7865):
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(b"{}")
+
         def do_POST(self):
             length = int(self.headers.get("content-length") or 0)
             body = self.rfile.read(length) if length else b""
