@@ -338,6 +338,30 @@ def capture(port=7865):
         print(f"stopped; captured requests are in {target}")
 
 
+
+def print_offpeak_window(start_hour=23, end_hour=9):
+    """闲时窗口默认按北京时间 23:00 → 次日 09:00 定义；窗口可配置。"""
+    from zoneinfo import ZoneInfo
+    bj_tz = ZoneInfo("Asia/Shanghai")
+    now_bj = datetime.datetime.now(bj_tz)
+    if start_hour <= end_hour:
+        in_window = start_hour <= now_bj.hour < end_hour
+    else:
+        in_window = now_bj.hour >= start_hour or now_bj.hour < end_hour
+    start_bj = now_bj.replace(hour=start_hour, minute=0, second=0, microsecond=0)
+    if end_hour <= start_hour and now_bj.hour < end_hour:
+        start_bj -= datetime.timedelta(days=1)
+    end_bj = start_bj + datetime.timedelta(hours=(end_hour - start_hour) % 24 or 24)
+    local_tz = datetime.datetime.now().astimezone().tzinfo
+    local_start = start_bj.astimezone(local_tz).strftime("%m-%d %H:%M")
+    local_end = end_bj.astimezone(local_tz).strftime("%m-%d %H:%M")
+    state = "当前在窗口内" if in_window else "当前在窗口外"
+    print(f"闲时窗口（北京时间 23:00–次日 09:00）：{state}"
+          f"（当前北京时间 {now_bj.strftime('%m-%d %H:%M')}；"
+          f"本窗口 {start_bj.strftime('%m-%d %H:%M')} → {end_bj.strftime('%m-%d %H:%M')}，"
+          f"本地 {local_start} → {local_end}）")
+
+
 def usage():
     """Query the plan's real credit meter (5h window + weekly) and today's usage."""
     key = (json.loads(ZCODE_CONFIG.read_text()).get("provider") or {})
@@ -362,6 +386,7 @@ def usage():
     print("套餐额度（level=%s）：" % data.get("level"))
     for label, used, remaining, pct, reset in rows:
         print(f"  {label}: 已用 {used} / 剩余 {remaining}（{pct}%），重置于 {reset}")
+    print_offpeak_window()
     tz = datetime.datetime.now().astimezone().tzinfo
     today = datetime.datetime.now(tz).strftime("%Y-%m-%d")
     start = urllib.parse.quote(f"{today} 00:00:00")

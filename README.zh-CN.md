@@ -175,7 +175,7 @@ metadata.user_id: {"device_id":"<设备 ID>","account_uuid":"","session_id":"<�
 
 `app_version` 从 `ZCode.app/Contents/Info.plist` 读取，设备 ID 首次生成后持久化在 `~/.local/state/glm-zcode-2api/device.key`。关闭 mimic 后网关只发 `x-api-key`，以自己的身份调用上游。
 
-验证方法：闲时窗口内跑几轮，对比 ZCode 用量页 / 上游账单是否按 50% 计（关闭 mimic 跑同样的量作对照）。
+实测与观察窗口：`python3 scripts/omp-gateway.py usage` 直接读取官方积分表（5 小时窗口 + 周窗口），并标注闲时窗口状态（北京时间 23:00–次日 09:00）。**实测注意：窗口内流量仍会计入积分表**（官方文档口径为闲时 50% 折扣，并非免费）；是否打折以用量页数字为准。
 
 ## 局域网访问
 
