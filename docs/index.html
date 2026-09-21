@@ -291,18 +291,18 @@ python3 scripts/omp-gateway.py token     # print the access token</pre>
 <section id="attribution" class="alt">
   <div class="wrap">
     <h2 data-l="zh">闲时优惠，与 App 同权</h2><h2 data-l="en">Off-peak discounts, same treatment as the app</h2>
-    <p style="color:var(--muted);max-width:860px;margin-bottom:18px" data-l="zh">GLM Coding Plan 按积分计费，<strong>非高峰时段（含周末全天）调用只消耗 50% 标准积分</strong>。这类权益按<strong>客户端归因</strong>判定——网关的 <code>mimic_client</code> 模式（启动器默认开启）把 ZCode 的归因头与账号 ID 原样带给上游，代理流量与 App 内流量同等对待：</p>
-    <p style="color:var(--muted);max-width:860px;margin-bottom:18px" data-l="en">The GLM Coding Plan is credit-based: <strong>off-peak calls (weekends included) consume only 50% of standard credits</strong>. These perks are decided by <strong>client attribution</strong> — with <code>mimic_client</code> (enabled by the launcher by default), the gateway mirrors ZCode's attribution headers and account ID, so proxied traffic gets the same treatment:</p>
+    <p style="color:var(--muted);max-width:860px;margin-bottom:18px" data-l="zh">GLM Coding Plan 按积分计费，<strong>非高峰时段（含周末全天）调用只消耗 50% 标准积分</strong>。这类权益在 ZCode <strong>平台网关</strong>（<code>zcode.z.ai/api/v1/ultra/…</code>）校验——官方客户端也会把请求重写到这里。网关默认走同一条路径，并发送与 App 相同的归因材料：</p>
+    <p style="color:var(--muted);max-width:860px;margin-bottom:18px" data-l="en">The GLM Coding Plan is credit-based: <strong>off-peak calls (weekends included) consume only 50% of standard credits</strong>. These perks are validated at the ZCode <strong>platform gateway</strong> (<code>zcode.z.ai/api/v1/ultra/…</code>) — the official client rewrites its requests there too. The gateway follows the same path by default and sends the same attribution material:</p>
     <div class="chips">
       <span>user-agent: ZCode/3.14.1</span><span>·</span>
       <span>x-zcode-agent: glm</span><span>·</span>
       <span>http-referer: zcode.z.ai</span><span>·</span>
       <span>x-os-version: 27.0.0</span><span>·</span>
-      <span>x-client-timezone: Europe/Paris</span><span>·</span>
-      <span>metadata.user_id: &lt;account id&gt;</span>
+      <span>x-device-mid: &lt;device id&gt;</span><span>·</span>
+      <span>metadata.user_id: {"device_id":…,"session_id":…}</span>
     </div>
-    <p style="color:var(--muted);font-size:13.5px;margin-top:12px" data-l="zh">版本号自动读取 ZCode.app，账号 ID 自动从套餐 JWT 解出，时区默认探测本机、可用 <code>upstream.client_timezone</code> 指定。</p>
-    <p style="color:var(--muted);font-size:13.5px;margin-top:12px" data-l="en">The version is read from ZCode.app's Info.plist, the account ID is decoded from the plan JWT, and the timezone is detected from the host by default (override with <code>upstream.client_timezone</code>).</p>
+    <p style="color:var(--muted);font-size:13.5px;margin-top:12px" data-l="zh">版本号自动读取 ZCode.app，设备 ID 首次生成后持久化，时区默认探测本机（可用 <code>upstream.client_timezone</code> 指定）；<code>upstream.gateway_origin</code> 置空可改为直连模型服务。</p>
+    <p style="color:var(--muted);font-size:13.5px;margin-top:12px" data-l="en">The version is read from ZCode.app's Info.plist, the device id is generated once and persisted, and the timezone is detected from the host (override with <code>upstream.client_timezone</code>); set <code>upstream.gateway_origin</code> empty to call the provider directly.</p>
   </div>
 </section>
 

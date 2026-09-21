@@ -71,7 +71,7 @@ func newGateway(t *testing.T, upstreamURL string) http.Handler {
 	cfg.Upstream.CredentialConfigPath = zcodeConfig
 	cfg.Upstream.MimicClient = true
 	cfg.Upstream.AppVersion = "3.14.0"
-	cfg.Upstream.UserID = "1234567890123456"
+	cfg.Upstream.DeviceID = "12345678-1234-4234-8234-123456789012"
 	return New(cfg, log.New(io.Discard, "", 0)).Handler()
 }
 
@@ -256,9 +256,14 @@ func TestStreamingChat(t *testing.T) {
 	if headers.Get("x-request-id") == "" || headers.Get("x-session-id") == "" {
 		t.Fatalf("generated request ids missing: %+v", headers)
 	}
+	if got := headers.Get("x-device-mid"); got != "12345678-1234-4234-8234-123456789012" {
+		t.Fatalf("x-device-mid = %q", got)
+	}
 	metadata, _ := body["metadata"].(map[string]any)
-	if metadata["user_id"] != "1234567890123456" {
-		t.Fatalf("account user_id not sent: %+v", body["metadata"])
+	raw, _ := metadata["user_id"].(string)
+	if !strings.Contains(raw, `"device_id":"12345678-1234-4234-8234-123456789012"`) ||
+		!strings.Contains(raw, `"account_uuid":""`) || !strings.Contains(raw, `"session_id":"`) {
+		t.Fatalf("metadata.user_id is not the official payload: %q", raw)
 	}
 	if body["stream"] != true || body["model"] != "GLM-5.3" {
 		t.Fatalf("upstream request body: %+v", body)
@@ -409,14 +414,14 @@ func TestHealthReportsMissingCredential(t *testing.T) {
 }
 
 func TestMimicTimezoneIsConfigurable(t *testing.T) {
-	headers := mimicHeaders("3.14.1", "Asia/Shanghai")
+	headers := mimicHeaders("3.14.1", "Asia/Shanghai", "dev-1")
 	if headers["x-client-timezone"] != "Asia/Shanghai" {
 		t.Fatalf("configured timezone ignored: %q", headers["x-client-timezone"])
 	}
 	if headers["user-agent"] != "ZCode/3.14.1" || headers["x-zcode-app-version"] != "3.14.1" {
 		t.Fatalf("app version not mirrored: %+v", headers)
 	}
-	detected := mimicHeaders("3.14.1", "")["x-client-timezone"]
+	detected := mimicHeaders("3.14.1", "", "dev-1")["x-client-timezone"]
 	if detected == "" || strings.Contains(detected, "Local") {
 		t.Fatalf("host timezone detection produced %q", detected)
 	}

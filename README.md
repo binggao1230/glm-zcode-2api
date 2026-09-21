@@ -149,18 +149,30 @@ Response side: thinking deltas → `reasoning_content`; `tool_use` + `input_json
 
 The new GLM Coding Plan is credit-based: **calls during off-peak hours (including all weekend) consume only 50% of standard credits** ([official docs](https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash)). These perks are decided by **client attribution**: the ZCode app attaches a full set of identity headers to model requests; bare third-party requests are billed as ordinary usage.
 
-`upstream.mimic_client` (enabled by the launcher by default) sends the same headers with the app's actual values:
+Two layers make proxied traffic look like the client's:
+
+**1. The same endpoint.** Official coding-plan traffic never hits the provider directly — the client rewrites it onto the ZCode platform gateway, where plan entitlements are validated (`apps/zcode-cli/.../official-coding-plan-gateway.ts` in the official repo):
+
+```
+https://open.bigmodel.cn/api/anthropic/v1/messages → https://zcode.z.ai/api/v1/ultra/anthropic/v1/messages
+https://api.z.ai/api/anthropic/v1/messages         → https://zcode.z.ai/api/v1/ultra-zai/anthropic/v1/messages
+```
+
+The gateway applies the same rewrite (`upstream.gateway_origin`, default `https://zcode.z.ai`; set it empty to talk to the provider directly).
+
+**2. The same request shape.** `upstream.mimic_client` (enabled by the launcher by default) sends the app's own attribution material:
 
 ```
 user-agent: ZCode/<app version>     http-referer: https://zcode.z.ai
 x-zcode-agent: glm                  x-zcode-app-version / x-title / x-release-channel
 x-platform: darwin-arm64            x-os-category / x-os-version (kernel release)
 x-client-language / x-client-timezone (host IANA zone by default, override with upstream.client_timezone)
-x-request-id / x-zcode-trace-id / x-query-id / x-session-id (generated per request)
-metadata.user_id: <account id>
+x-device-mid: <persistent per-install id>
+x-request-id / x-zcode-trace-id / x-query-id / x-session-id (per request; session id stays stable per run)
+metadata.user_id: {"device_id":"<id>","account_uuid":"","session_id":"<id>"}
 ```
 
-`app_version` is read from `ZCode.app/Contents/Info.plist`, `user_id` is decoded from the plan JWT in the ZCode config — nothing to fill in by hand. With mimic off, the gateway calls upstream with only `x-api-key`, identifying as itself.
+`app_version` is read from `ZCode.app/Contents/Info.plist`, the device id is generated once and persisted in `~/.local/state/glm-zcode-2api/device.key`. With mimic off, the gateway calls upstream with only `x-api-key`, identifying as itself.
 
 To verify: run a few rounds inside the off-peak window and compare the ZCode usage page / upstream billing against 50% (run the same volume with mimic off as a control).
 
@@ -191,9 +203,10 @@ curl -s http://192.168.x.x:7864/v1/models -H "Authorization: Bearer $KEY"
 | `upstream.provider_id` | `builtin:bigmodel-coding-plan` | Which provider entry in the ZCode config to use |
 | `upstream.credential_config_path` | `~/.zcode/v2/config.json` | Path to the ZCode config |
 | `upstream.base_url` / `api_key` | empty | Overrides the values read from ZCode |
+| `upstream.gateway_origin` | `https://zcode.z.ai` | Platform gateway that official coding-plan traffic goes through; empty = provider endpoint directly |
 | `upstream.mimic_client` | `true` via launcher | Send ZCode attribution headers (see above); `false` in code |
 | `upstream.app_version` | read from the app | `ZCode/<version>` in attribution headers |
-| `upstream.user_id` | decoded from plan JWT | `metadata.user_id` sent with requests |
+| `upstream.device_id` | generated, persisted | `x-device-mid` and `metadata.user_id.device_id` |
 | `upstream.client_timezone` | empty = detect host | IANA zone for `x-client-timezone`, override with `Z2A_CLIENT_TIMEZONE` |
 | `upstream.header_timeout_seconds` | `120` | Wait for upstream response headers |
 | `upstream.idle_timeout_seconds` | `300` | Idle limit inside a stream (silent stall) |
@@ -204,7 +217,7 @@ curl -s http://192.168.x.x:7864/v1/models -H "Authorization: Bearer $KEY"
 
 **The client overrides the config for thinking**: a request carrying `reasoning_effort` (OMP's `--thinking` uses this field) or `reasoning.effort` wins; `minimal`→`low`, `xhigh`→`max`; `off`/`none`/`disabled` or `thinking.type=disabled` turns thinking off. Unset → table defaults.
 
-Environment overrides (only non-empty values apply): `Z2A_LISTEN`, `Z2A_API_KEY`, `Z2A_UPSTREAM_BASE_URL`, `Z2A_UPSTREAM_PROVIDER_ID`, `Z2A_UPSTREAM_API_KEY`, `Z2A_CREDENTIAL_CONFIG_PATH`, `Z2A_CLIENT_TIMEZONE`, `Z2A_USER_AGENT`, `Z2A_MAX_BODY_MB`, `Z2A_THINKING_ENABLED`, `Z2A_THINKING_EFFORT`, `Z2A_IDLE_TIMEOUT_SECONDS`. The launcher filters these out so the environment can't silently change the upstream destination.
+Environment overrides (only non-empty values apply): `Z2A_LISTEN`, `Z2A_API_KEY`, `Z2A_UPSTREAM_BASE_URL`, `Z2A_UPSTREAM_PROVIDER_ID`, `Z2A_UPSTREAM_API_KEY`, `Z2A_CREDENTIAL_CONFIG_PATH`, `Z2A_CLIENT_TIMEZONE`, `Z2A_GATEWAY_ORIGIN`, `Z2A_DEVICE_ID`, `Z2A_USER_AGENT`, `Z2A_MAX_BODY_MB`, `Z2A_THINKING_ENABLED`, `Z2A_THINKING_EFFORT`, `Z2A_IDLE_TIMEOUT_SECONDS`. The launcher filters these out so the environment can't silently change the upstream destination.
 
 ## Error handling
 

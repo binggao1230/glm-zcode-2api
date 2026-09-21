@@ -149,18 +149,30 @@ flowchart LR
 
 新版 GLM Coding Plan 按积分计费，**非高峰时段（含周末全天）的调用只消耗 50% 标准积分**（[官方说明](https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash)）。这类权益按**客户端归因**判定：ZCode App 在模型请求上携带一整套标识头，裸的第三方请求没有这套身份，服务端按普通调用记账。
 
-网关的 `upstream.mimic_client`（启动器默认开启）按 App 的实际取值原样发出：
+两层都对齐才算「同权」：
+
+**一、同一个端点。** 官方 Coding Plan 流量并不直连模型服务——客户端会把它重写到 ZCode 平台网关，由平台完成套餐权益校验（官方仓库 `apps/zcode-cli/.../official-coding-plan-gateway.ts`）：
+
+```
+https://open.bigmodel.cn/api/anthropic/v1/messages → https://zcode.z.ai/api/v1/ultra/anthropic/v1/messages
+https://api.z.ai/api/anthropic/v1/messages         → https://zcode.z.ai/api/v1/ultra-zai/anthropic/v1/messages
+```
+
+网关做同样的重写（`upstream.gateway_origin`，默认 `https://zcode.z.ai`；置空则直连模型服务）。
+
+**二、同样的请求形态。** `upstream.mimic_client`（启动器默认开启）按 App 的实际取值原样发出：
 
 ```
 user-agent: ZCode/<App 版本>        http-referer: https://zcode.z.ai
 x-zcode-agent: glm                  x-zcode-app-version / x-title / x-release-channel
 x-platform: darwin-arm64            x-os-category / x-os-version（内核版本）
 x-client-language / x-client-timezone（默认探测本机 IANA 时区，可用 upstream.client_timezone 指定）
-x-request-id / x-zcode-trace-id / x-query-id / x-session-id（每请求生成）
-metadata.user_id: <账号 ID>
+x-device-mid: <持久化的设备 ID>
+x-request-id / x-zcode-trace-id / x-query-id / x-session-id（每请求生成；会话 ID 单次运行内稳定）
+metadata.user_id: {"device_id":"<设备 ID>","account_uuid":"","session_id":"<会话 ID>"}
 ```
 
-`app_version` 从 `ZCode.app/Contents/Info.plist` 读取，`user_id` 从 ZCode 配置里的套餐 JWT 解出，无需手工填写。关闭 mimic 后网关只发 `x-api-key`，以自己的身份调用上游。
+`app_version` 从 `ZCode.app/Contents/Info.plist` 读取，设备 ID 首次生成后持久化在 `~/.local/state/glm-zcode-2api/device.key`。关闭 mimic 后网关只发 `x-api-key`，以自己的身份调用上游。
 
 验证方法：闲时窗口内跑几轮，对比 ZCode 用量页 / 上游账单是否按 50% 计（关闭 mimic 跑同样的量作对照）。
 
@@ -191,9 +203,10 @@ curl -s http://192.168.x.x:7864/v1/models -H "Authorization: Bearer $KEY"
 | `upstream.provider_id` | `builtin:bigmodel-coding-plan` | 取 ZCode 配置里哪个 provider 的密钥 |
 | `upstream.credential_config_path` | `~/.zcode/v2/config.json` | ZCode 配置路径 |
 | `upstream.base_url` / `api_key` | 空 | 非空则覆盖从 ZCode 读到的值 |
+| `upstream.gateway_origin` | `https://zcode.z.ai` | 官方 Coding Plan 流量经此平台网关（套餐权益校验处）；置空 = 直连模型服务 |
 | `upstream.mimic_client` | 启动器写 `true` | 以 ZCode 客户端身份发送归因头（见上节）；代码默认 `false` |
 | `upstream.app_version` | 读取 App 实际版本 | 归因头里的 `ZCode/<version>` |
-| `upstream.user_id` | 从套餐 JWT 提取 | 随请求发送的 `metadata.user_id`（账号 ID） |
+| `upstream.device_id` | 生成后持久化 | `x-device-mid` 与 `metadata.user_id.device_id` |
 | `upstream.client_timezone` | 空 = 按本机探测 | 归因头 `x-client-timezone` 用的 IANA 时区，可用 `Z2A_CLIENT_TIMEZONE` 覆盖 |
 | `upstream.header_timeout_seconds` | `120` | 等上游响应头上限 |
 | `upstream.idle_timeout_seconds` | `300` | 流中空闲上限（静默断流） |
@@ -204,7 +217,7 @@ curl -s http://192.168.x.x:7864/v1/models -H "Authorization: Bearer $KEY"
 
 **思考档位由客户端覆盖配置**：请求带 `reasoning_effort`（OMP 的 `--thinking` 即走此字段）或 `reasoning.effort` 时以客户端为准；`minimal`→`low`、`xhigh`→`max`，`off`/`none`/`disabled` 或 `thinking.type=disabled` 则关闭。未指定时用上表默认值。
 
-环境变量覆盖（非空才生效）：`Z2A_LISTEN`、`Z2A_API_KEY`、`Z2A_UPSTREAM_BASE_URL`、`Z2A_UPSTREAM_PROVIDER_ID`、`Z2A_UPSTREAM_API_KEY`、`Z2A_CREDENTIAL_CONFIG_PATH`、`Z2A_CLIENT_TIMEZONE`、`Z2A_USER_AGENT`、`Z2A_MAX_BODY_MB`、`Z2A_THINKING_ENABLED`、`Z2A_THINKING_EFFORT`、`Z2A_IDLE_TIMEOUT_SECONDS`。启动器会过滤掉这些变量，避免环境意外改变上游目的地。
+环境变量覆盖（非空才生效）：`Z2A_LISTEN`、`Z2A_API_KEY`、`Z2A_UPSTREAM_BASE_URL`、`Z2A_UPSTREAM_PROVIDER_ID`、`Z2A_UPSTREAM_API_KEY`、`Z2A_CREDENTIAL_CONFIG_PATH`、`Z2A_CLIENT_TIMEZONE`、`Z2A_GATEWAY_ORIGIN`、`Z2A_DEVICE_ID`、`Z2A_USER_AGENT`、`Z2A_MAX_BODY_MB`、`Z2A_THINKING_ENABLED`、`Z2A_THINKING_EFFORT`、`Z2A_IDLE_TIMEOUT_SECONDS`。启动器会过滤掉这些变量，避免环境意外改变上游目的地。
 
 ## 错误处理
 

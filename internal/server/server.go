@@ -28,20 +28,28 @@ import (
 const Service = "glm-zcode-2api"
 
 type Server struct {
-	cfg      *config.Config
-	resolver *credential.Resolver
-	replay   *convert.ReplayCache
-	client   *upstream.Client
-	logger   *log.Logger
-	started  time.Time
+	cfg       *config.Config
+	deviceID  string
+	sessionID string
+	resolver  *credential.Resolver
+	replay    *convert.ReplayCache
+	client    *upstream.Client
+	logger    *log.Logger
+	started   time.Time
 }
 
 func New(cfg *config.Config, logger *log.Logger) *Server {
 	if logger == nil {
 		logger = log.Default()
 	}
+	deviceID := cfg.Upstream.DeviceID
+	if deviceID == "" {
+		deviceID = newUUID()
+	}
 	return &Server{
-		cfg: cfg,
+		cfg:       cfg,
+		deviceID:  deviceID,
+		sessionID: newUUID(),
 		resolver: &credential.Resolver{
 			ConfigPath: cfg.Upstream.CredentialConfigPath,
 			ProviderID: cfg.Upstream.ProviderID,
@@ -165,7 +173,8 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 		ThinkingEffort:   s.cfg.Thinking.Effort,
 		PromptCache:      s.cfg.Thinking.PromptCache,
 		Replay:           s.replay,
-		UserID:           s.cfg.Upstream.UserID,
+		DeviceID:         mimicDeviceID(s.cfg.Upstream.MimicClient, s.deviceID),
+		SessionID:        s.sessionID,
 	})
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request_error", err.Error(), nil)
@@ -175,6 +184,7 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 	client := s.clientFor(cred)
 	translator := convert.NewTranslator(spec.ID, start.Unix())
 	thinking := thinkingLabel(upstreamReq)
+	upstreamURL := upstream.MessagesURL(client.BaseURL, client.GatewayOrigin)
 
 	if !req.Stream {
 		err = client.Messages(r.Context(), upstreamReq, upstream.Handlers{
@@ -185,13 +195,13 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			status, body := s.errorFor(err)
-			s.logChat(spec.ID, false, status, start, translator, thinking, err)
+			s.logChat(spec.ID, false, status, start, translator, thinking, upstreamURL, err)
 			writeError(w, status, body.Type, body.Message, body.Code)
 			return
 		}
 		s.storeReplay(translator)
 		writeJSON(w, http.StatusOK, translator.Response())
-		s.logChat(spec.ID, false, http.StatusOK, start, translator, thinking, nil)
+		s.logChat(spec.ID, false, http.StatusOK, start, translator, thinking, upstreamURL, nil)
 		return
 	}
 
@@ -238,7 +248,7 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 			err = errors.New("upstream closed the stream before it started")
 		}
 		status, body := s.errorFor(err)
-		s.logChat(spec.ID, true, status, start, translator, thinking, err)
+		s.logChat(spec.ID, true, status, start, translator, thinking, upstreamURL, err)
 		writeError(w, status, body.Type, body.Message, body.Code)
 		return
 	}
@@ -248,7 +258,7 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 		_ = writeEvent(openai.ErrorResponse{Error: body})
 		_, _ = fmt.Fprint(w, "data: [DONE]\n\n")
 		_ = controller.Flush()
-		s.logChat(spec.ID, true, s.statusFor(err), start, translator, thinking, err)
+		s.logChat(spec.ID, true, s.statusFor(err), start, translator, thinking, upstreamURL, err)
 		return
 	}
 
@@ -267,7 +277,7 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprint(w, "data: [DONE]\n\n")
 	_ = controller.Flush()
 	s.storeReplay(translator)
-	s.logChat(spec.ID, true, http.StatusOK, start, translator, thinking, err)
+	s.logChat(spec.ID, true, http.StatusOK, start, translator, thinking, upstreamURL, err)
 }
 
 // thinkingLabel renders the thinking setting actually sent upstream.
@@ -292,8 +302,11 @@ func (s *Server) clientFor(cred credential.Credential) *upstream.Client {
 	if client.APIKey == "" {
 		client.APIKey = cred.APIKey
 	}
+	if client.GatewayOrigin == "" {
+		client.GatewayOrigin = s.cfg.Upstream.GatewayOrigin
+	}
 	if s.cfg.Upstream.MimicClient {
-		client.Headers = mimicHeaders(s.cfg.Upstream.AppVersion, s.cfg.Upstream.ClientTimezone)
+		client.Headers = mimicHeaders(s.cfg.Upstream.AppVersion, s.cfg.Upstream.ClientTimezone, s.deviceID)
 		client.UserAgent = client.Headers["user-agent"]
 	}
 	return &client
@@ -302,7 +315,7 @@ func (s *Server) clientFor(cred credential.Credential) *upstream.Client {
 // mimicHeaders mirrors the attribution header set the ZCode app itself sends
 // on model requests, so the upstream applies the same plan treatment
 // (off-peak discounts, free flash windows) as it does for the app.
-func mimicHeaders(appVersion, timezone string) map[string]string {
+func mimicHeaders(appVersion, timezone, deviceID string) map[string]string {
 	if appVersion == "" {
 		appVersion = "3.14.0"
 	}
@@ -322,11 +335,21 @@ func mimicHeaders(appVersion, timezone string) map[string]string {
 		"x-os-category":        osCategory(),
 		"x-os-version":         osVersion(),
 		"x-zcode-session-type": "main",
+		"x-device-mid":         deviceID,
 		"x-request-id":         newUUID(),
 		"x-zcode-trace-id":     newUUID(),
 		"x-query-id":           newUUID(),
 		"x-session-id":         newUUID(),
 	}
+}
+
+// mimicDeviceID only exposes the installation device id when the gateway is
+// impersonating the official client.
+func mimicDeviceID(mimic bool, deviceID string) string {
+	if !mimic {
+		return ""
+	}
+	return deviceID
 }
 
 func currentTimeZone() string {
@@ -386,10 +409,10 @@ func (s *Server) storeReplay(t *convert.Translator) {
 	s.replay.Put(keys, blocks)
 }
 
-func (s *Server) logChat(model string, stream bool, status int, start time.Time, t *convert.Translator, thinking string, err error) {
+func (s *Server) logChat(model string, stream bool, status int, start time.Time, t *convert.Translator, thinking, upstreamURL string, err error) {
 	usage := t.Usage()
-	line := fmt.Sprintf("event=chat model=%s stream=%t status=%d thinking=%s total_ms=%d prompt_tokens=%d completion_tokens=%d finish=%s",
-		model, stream, status, thinking, time.Since(start).Milliseconds(),
+	line := fmt.Sprintf("event=chat model=%s stream=%t status=%d thinking=%s upstream=%s total_ms=%d prompt_tokens=%d completion_tokens=%d finish=%s",
+		model, stream, status, thinking, upstreamURL, time.Since(start).Milliseconds(),
 		usage.PromptTokens, usage.CompletionTokens, t.FinishReason())
 	if err != nil {
 		line += fmt.Sprintf(" error=%q", err.Error())

@@ -21,9 +21,10 @@ type Options struct {
 	ThinkingEffort   string
 	PromptCache      bool
 	Replay           *ReplayCache
-	// UserID is the account identifier sent as metadata.user_id when the
-	// client does not provide one; mirrors what the ZCode app sends.
-	UserID string
+	// DeviceID and SessionID build the metadata.user_id JSON the official
+	// client sends: {"device_id":…,"account_uuid":"","session_id":…}.
+	DeviceID  string
+	SessionID string
 }
 
 // maxCacheBreakpoints is the Anthropic limit for explicit cache breakpoints.
@@ -71,7 +72,7 @@ func Request(req *openai.ChatRequest, upstreamModel string, opts Options) (*anth
 	out.Temperature = req.Temperature
 	out.TopP = req.TopP
 	out.StopSequences = stopSequences(req.Stop)
-	if id := userID(req, opts.UserID); id != "" {
+	if id := requestUserID(req, opts); id != "" {
 		out.Metadata = map[string]any{"user_id": id}
 	}
 	if enabled, effort := resolveThinking(req, opts); enabled {
@@ -165,14 +166,27 @@ func maxTokens(req *openai.ChatRequest, opts Options) int {
 	}
 }
 
-func userID(req *openai.ChatRequest, fallback string) string {
+// requestUserID mirrors the official client: anthropic-kind providers always
+// send a metadata.user_id JSON payload carrying the device and session ids.
+// Without that material the caller's own identifier is forwarded instead.
+func requestUserID(req *openai.ChatRequest, opts Options) string {
+	if opts.DeviceID != "" {
+		payload, err := json.Marshal(struct {
+			DeviceID    string `json:"device_id"`
+			AccountUUID string `json:"account_uuid"`
+			SessionID   string `json:"session_id"`
+		}{DeviceID: opts.DeviceID, AccountUUID: "", SessionID: opts.SessionID})
+		if err == nil {
+			return string(payload)
+		}
+	}
 	if req.User != "" {
 		return req.User
 	}
 	if v, ok := req.Metadata["user_id"].(string); ok && v != "" {
 		return v
 	}
-	return fallback
+	return ""
 }
 
 func stopSequences(raw json.RawMessage) []string {

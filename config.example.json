@@ -7,6 +7,8 @@
   "upstream": {
     "base_url": "",
     "provider_id": "builtin:bigmodel-coding-plan",
+    "gateway_origin": "https://zcode.z.ai",
+    "device_id": "generated-and-persisted-by-the-launcher",
     "api_key": "",
     "anthropic_version": "2023-06-01",
     "user_agent": "glm-zcode-2api/0.1",

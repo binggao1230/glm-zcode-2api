@@ -37,7 +37,13 @@ type Upstream struct {
 	// requests the same way they do inside the app.
 	MimicClient bool   `json:"mimic_client"`
 	AppVersion  string `json:"app_version"`
-	UserID      string `json:"user_id"`
+	// GatewayOrigin is the ZCode platform gateway that official coding-plan
+	// model traffic is routed through (plan entitlements are validated there).
+	// Empty disables the rewrite and talks to the provider endpoint directly.
+	GatewayOrigin string `json:"gateway_origin"`
+	// DeviceID is the persistent per-install device id sent as x-device-mid and
+	// embedded in metadata.user_id, mirroring the official client.
+	DeviceID string `json:"device_id"`
 	// ClientTimezone is the IANA zone sent as x-client-timezone. Empty means
 	// detect the host zone.
 	ClientTimezone       string   `json:"client_timezone"`
@@ -72,6 +78,7 @@ func Default() *Config {
 		Listen: "0.0.0.0:7864",
 		Server: Server{MaxBodyMB: 16},
 		Upstream: Upstream{
+			GatewayOrigin:        "https://zcode.z.ai",
 			ProviderID:           "builtin:bigmodel-coding-plan",
 			AnthropicVersion:     "2023-06-01",
 			UserAgent:            "glm-zcode-2api/0.1",
@@ -129,6 +136,12 @@ func (c *Config) applyEnv() {
 	}
 	if v := os.Getenv("Z2A_CLIENT_TIMEZONE"); v != "" {
 		c.Upstream.ClientTimezone = v
+	}
+	if v := os.Getenv("Z2A_GATEWAY_ORIGIN"); v != "" {
+		c.Upstream.GatewayOrigin = v
+	}
+	if v := os.Getenv("Z2A_DEVICE_ID"); v != "" {
+		c.Upstream.DeviceID = v
 	}
 	if v := os.Getenv("Z2A_USER_AGENT"); v != "" {
 		c.Upstream.UserAgent = v

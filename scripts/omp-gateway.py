@@ -14,6 +14,7 @@ import json
 import os
 from pathlib import Path
 import secrets
+import uuid
 import signal
 import socket
 import subprocess
@@ -138,22 +139,16 @@ def models_from_provider(entry):
     return models
 
 
-def account_user_id(document):
-    """Recover the Zhipu account id from any plan JWT in the ZCode config."""
-    import base64
-    for entry in (document.get("provider") or {}).values():
-        candidate = ((entry.get("options") or {}).get("apiKey") or "")
-        if candidate.count(".") != 2:
-            continue
-        middle = candidate.split(".")[1]
-        try:
-            claims = json.loads(base64.urlsafe_b64decode(middle + "=" * (-len(middle) % 4)))
-        except (ValueError, json.JSONDecodeError):
-            continue
-        user_id = claims.get("user_id")
-        if user_id:
-            return str(user_id)
-    return None
+def device_id():
+    """Persistent per-install device id, mirroring the official client's deviceMid."""
+    path = ROOT / "device.key"
+    if path.exists():
+        value = path.read_text().strip()
+        if value:
+            return value
+    value = str(uuid.uuid4())
+    secure_write(path, value + "\n")
+    return value
 
 
 def prepare():
@@ -171,10 +166,13 @@ def prepare():
     if len(key) < 32:
         raise RuntimeError("invalid local client key")
 
-    user_id = account_user_id(document)
     upstream_config = {
         "provider_id": provider_id,
         "credential_config_path": str(ZCODE_CONFIG),
+        # Official coding-plan model traffic is routed through the ZCode platform
+        # gateway, where plan entitlements are validated.
+        "gateway_origin": "https://zcode.z.ai",
+        "device_id": device_id(),
         "anthropic_version": "2023-06-01",
         # Identify proxied requests as the ZCode client so plan promotions
         # (off-peak discounts, free flash windows) apply the same way.
@@ -184,9 +182,6 @@ def prepare():
         "header_timeout_seconds": 120,
         "idle_timeout_seconds": 300,
     }
-    if user_id:
-        upstream_config["user_id"] = user_id
-
     config = {
         "listen": f"0.0.0.0:{PORT}",
         "api_key": key,
@@ -196,7 +191,7 @@ def prepare():
         "models": models,
     }
     audit("prepare_gateway_config", source=str(ZCODE_CONFIG), provider=provider_id,
-          models=[m["id"] for m in models], credential_copied=False, user_id=user_id)
+          models=[m["id"] for m in models], credential_copied=False)
     secure_write(ROOT / "config.json", json.dumps(config, indent=2) + "\n")
     return [m["id"] for m in models]
 

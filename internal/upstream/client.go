@@ -25,10 +25,33 @@ type Client struct {
 	UserAgent  string
 	Beta       []string
 	// Headers are sent verbatim on every request (client attribution etc).
-	Headers       map[string]string
+	Headers map[string]string
+	// GatewayOrigin routes official coding-plan endpoints through the ZCode
+	// platform gateway; empty keeps the provider endpoint as-is.
+	GatewayOrigin string
 	IdleTimeout   time.Duration
 	HeaderTimeout time.Duration
 	HTTP          *http.Client
+}
+
+// gatewayPaths maps official coding-plan provider endpoints onto the platform
+// gateway paths the ZCode client uses (plan entitlements are validated there,
+// see zai-org/ZCode apps/zcode-cli/.../official-coding-plan-gateway.ts).
+var gatewayPaths = map[string]string{
+	"https://open.bigmodel.cn/api/anthropic": "/api/v1/ultra/anthropic",
+	"https://api.z.ai/api/anthropic":         "/api/v1/ultra-zai/anthropic",
+}
+
+// MessagesURL resolves the URL a Messages request is sent to. Official provider
+// endpoints are rewritten onto the platform gateway when gatewayOrigin is set.
+func MessagesURL(baseURL, gatewayOrigin string) string {
+	base := strings.TrimRight(baseURL, "/")
+	if gatewayOrigin != "" {
+		if prefix, ok := gatewayPaths[base]; ok {
+			return strings.TrimRight(gatewayOrigin, "/") + prefix + "/v1/messages"
+		}
+	}
+	return base + "/v1/messages"
 }
 
 // Handlers receives the upstream stream.
@@ -73,7 +96,7 @@ func (c *Client) Messages(ctx context.Context, req *anthropic.Request, handlers 
 	defer cancel()
 
 	httpReq, err := http.NewRequestWithContext(reqCtx, http.MethodPost,
-		strings.TrimRight(c.BaseURL, "/")+"/v1/messages", bytes.NewReader(body))
+		MessagesURL(c.BaseURL, c.GatewayOrigin), bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("build upstream request: %w", err)
 	}
