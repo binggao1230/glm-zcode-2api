@@ -66,6 +66,7 @@ python3 scripts/omp-gateway.py status    # 运行状态 + health
 python3 scripts/omp-gateway.py restart   # 重新登录 ZCode / 切换套餐后同步
 python3 scripts/omp-gateway.py stop
 python3 scripts/omp-gateway.py token     # 打印访问口令
+python3 scripts/omp-gateway.py usage     # 实时套餐额度（5h 窗口 / 周窗口 / 今日分时）
 ```
 
 ### 接入 OMP（oh-my-pi）

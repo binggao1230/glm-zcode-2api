@@ -338,9 +338,52 @@ def capture(port=7865):
         print(f"stopped; captured requests are in {target}")
 
 
+def usage():
+    """Query the plan's real credit meter (5h window + weekly) and today's usage."""
+    key = (json.loads(ZCODE_CONFIG.read_text()).get("provider") or {})
+    key = next(((v.get("options") or {}).get("apiKey") for v in key.values()
+                if (v.get("options") or {}).get("apiKey")), "")
+    if not key:
+        raise RuntimeError("no plan API key found in the ZCode config")
+    url = "https://open.bigmodel.cn/api/monitor/usage/quota/limit"
+    req = urllib.request.Request(url, headers={"authorization": key})
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    with opener.open(req, timeout=15) as response:
+        envelope = json.load(response)
+    data = envelope.get("data") or {}
+    rows = []
+    for limit in data.get("limits") or []:
+        unit, number = limit.get("unit"), limit.get("number")
+        label = {3: "5 小时窗口", 6: "周窗口"}.get(unit, f"unit={unit}")
+        reset = datetime.datetime.fromtimestamp(limit.get("nextResetTime", 0) / 1000,
+                                               datetime.timezone.utc).astimezone()
+        rows.append((label, limit.get("currentValue"), limit.get("remaining"),
+                     limit.get("percentage"), reset.strftime("%m-%d %H:%M")))
+    print("套餐额度（level=%s）：" % data.get("level"))
+    for label, used, remaining, pct, reset in rows:
+        print(f"  {label}: 已用 {used} / 剩余 {remaining}（{pct}%），重置于 {reset}")
+    tz = datetime.datetime.now().astimezone().tzinfo
+    today = datetime.datetime.now(tz).strftime("%Y-%m-%d")
+    start = urllib.parse.quote(f"{today} 00:00:00")
+    end = urllib.parse.quote(f"{today} 23:59:59")
+    detail_url = ("https://open.bigmodel.cn/api/monitor/usage/model-usage"
+                  f"?startTime={start}&endTime={end}")
+    req = urllib.request.Request(detail_url, headers={"authorization": key})
+    with opener.open(req, timeout=15) as response:
+        detail = json.load(response).get("data") or {}
+    buckets = list(zip(detail.get("x_time") or [], detail.get("modelCallCount") or [],
+                       detail.get("tokensUsage") or []))
+    nonempty = [(t, c, tk) for t, c, tk in buckets if c]
+    calls = sum(c for _, c, _ in nonempty)
+    tokens = sum(tk for _, _, tk in nonempty)
+    print(f"今日（{tz}）模型调用 {calls} 次 / {tokens:,} tokens，分时：")
+    for t, c, tk in nonempty[-6:]:
+        print(f"  {t}  {c:>4} 次  {tk:>12,} tokens")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("start", "stop", "restart", "status", "token", "capture"))
+    parser.add_argument("command", choices=("start", "stop", "restart", "status", "token", "capture", "usage"))
     args = parser.parse_args()
     ROOT.mkdir(mode=0o700, parents=True, exist_ok=True)
     os.chmod(ROOT, 0o700)
@@ -358,6 +401,8 @@ def main():
                               "base_url": BASE + "/v1"}))
         elif args.command == "stop":
             stop()
+        elif args.command == "usage":
+            usage()
         elif args.command == "capture":
             capture()
         elif args.command == "restart":
