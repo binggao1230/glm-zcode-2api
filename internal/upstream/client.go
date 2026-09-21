@@ -26,10 +26,6 @@ type Client struct {
 	Beta       []string
 	// Headers are sent verbatim on every request (client attribution etc).
 	Headers map[string]string
-	// MirrorAuth sends "Authorization: Bearer <api key>" alongside x-api-key,
-	// exactly as the official client does; the platform gateway keys plan
-	// entitlements off this header. Auth材料与官方客户端一致。
-	MirrorAuth bool
 	// GatewayOrigin routes official coding-plan endpoints through the ZCode
 	// platform gateway; empty keeps the provider endpoint as-is.
 	GatewayOrigin string
@@ -107,13 +103,6 @@ func (c *Client) Messages(ctx context.Context, req *anthropic.Request, handlers 
 	httpReq.Header.Set("content-type", "application/json")
 	httpReq.Header.Set("accept", "text/event-stream")
 	httpReq.Header.Set("x-api-key", c.APIKey)
-	if c.MirrorAuth && c.APIKey != "" {
-		// The official client sends BOTH x-api-key and
-		// "Authorization: Bearer <the same plan api key>" on model requests
-		// (withAnthropicAuthorizationHeader in zai-org/ZCode model-execution.ts).
-		// The platform gateway keys plan entitlements off this header.
-		httpReq.Header.Set("authorization", "Bearer "+c.APIKey)
-	}
 	version := c.APIVersion
 	if version == "" {
 		version = "2023-06-01"

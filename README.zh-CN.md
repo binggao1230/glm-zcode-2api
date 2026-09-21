@@ -171,7 +171,6 @@ x-client-language / x-client-timezone（默认探测本机 IANA 时区，可用 
 x-device-mid: <持久化的设备 ID>
 x-request-id / x-zcode-trace-id / x-query-id / x-session-id（每请求生成；会话 ID 单次运行内稳定）
 metadata.user_id: {"device_id":"<设备 ID>","account_uuid":"","session_id":"<会话 ID>"}
-x-api-key + authorization: Bearer <同一个套餐 key>（官方客户端两个都发）
 ```
 
 `app_version` 从 `ZCode.app/Contents/Info.plist` 读取，设备 ID 首次生成后持久化在 `~/.local/state/glm-zcode-2api/device.key`。关闭 mimic 后网关只发 `x-api-key`，以自己的身份调用上游。
@@ -206,7 +205,6 @@ curl -s http://192.168.x.x:7864/v1/models -H "Authorization: Bearer $KEY"
 | `upstream.credential_config_path` | `~/.zcode/v2/config.json` | ZCode 配置路径 |
 | `upstream.base_url` / `api_key` | 空 | 非空则覆盖从 ZCode 读到的值 |
 | `upstream.gateway_origin` | `https://zcode.z.ai` | 官方 Coding Plan 流量经此平台网关（套餐权益校验处）；置空 = 直连模型服务 |
-| `upstream.mirror_auth` | `true` | 额外发送 `Authorization: Bearer <套餐 key>`，与官方客户端一致（`Z2A_MIRROR_AUTH` 可覆盖） |
 | `upstream.mimic_client` | 启动器写 `true` | 以 ZCode 客户端身份发送归因头（见上节）；代码默认 `false` |
 | `upstream.app_version` | 读取 App 实际版本 | 归因头里的 `ZCode/<version>` |
 | `upstream.device_id` | 生成后持久化 | `x-device-mid` 与 `metadata.user_id.device_id` |

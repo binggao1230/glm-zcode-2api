@@ -171,7 +171,6 @@ x-client-language / x-client-timezone (host IANA zone by default, override with 
 x-device-mid: <persistent per-install id>
 x-request-id / x-zcode-trace-id / x-query-id / x-session-id (per request; session id stays stable per run)
 metadata.user_id: {"device_id":"<id>","account_uuid":"","session_id":"<id>"}
-x-api-key + authorization: Bearer <the same plan api key> (the official client sends both)
 ```
 
 `app_version` is read from `ZCode.app/Contents/Info.plist`, the device id is generated once and persisted in `~/.local/state/glm-zcode-2api/device.key`. With mimic off, the gateway calls upstream with only `x-api-key`, identifying as itself.
@@ -206,7 +205,6 @@ curl -s http://192.168.x.x:7864/v1/models -H "Authorization: Bearer $KEY"
 | `upstream.credential_config_path` | `~/.zcode/v2/config.json` | Path to the ZCode config |
 | `upstream.base_url` / `api_key` | empty | Overrides the values read from ZCode |
 | `upstream.gateway_origin` | `https://zcode.z.ai` | Platform gateway that official coding-plan traffic goes through; empty = provider endpoint directly |
-| `upstream.mirror_auth` | `true` | Also send `Authorization: Bearer <plan key>` like the official client (`Z2A_MIRROR_AUTH` to override) |
 | `upstream.mimic_client` | `true` via launcher | Send ZCode attribution headers (see above); `false` in code |
 | `upstream.app_version` | read from the app | `ZCode/<version>` in attribution headers |
 | `upstream.device_id` | generated, persisted | `x-device-mid` and `metadata.user_id.device_id` |
