@@ -53,6 +53,23 @@ glm-zcode-2api is a local reverse proxy that wraps the Anthropic endpoint of a Z
    - `omp --model zcode/glm-5.3-flash` answers with a normal stream;
    - if any step fails: read `~/.local/state/glm-zcode-2api/gateway.log` and the command stderr, fix and retry — never skip acceptance.
 
+## Verifying byte-level fidelity (optional)
+
+The launcher can capture what the official client actually sends, by pointing the
+client at a local listener via its endpoint override:
+
+```bash
+python3 scripts/omp-gateway.py capture          # listens on 127.0.0.1:7865
+# in another terminal, launch the client against it:
+ZCODE_ENDPOINT_ORIGIN=http://127.0.0.1:7865 open -a ZCode --env ZCODE_ENDPOINT_ORIGIN=http://127.0.0.1:7865
+```
+
+Send one message in the client; every request (path, headers, body hash and
+preview) is appended to `~/.local/state/glm-zcode-2api/capture.jsonl` (0600).
+Compare it against what this gateway sends to confirm the two are identical.
+The capture file contains live credentials — treat it as secret and delete it
+when done.
+
 ## Discipline
 
 - Never commit or publicly print `client.key`, the upstream apiKey, JWTs or account IDs;

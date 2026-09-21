@@ -9,6 +9,7 @@ import argparse
 import contextlib
 import datetime
 import fcntl
+import hashlib
 import io
 import json
 import os
@@ -265,9 +266,75 @@ def stop():
     raise RuntimeError("Gateway is still shutting down; no stronger signal was sent")
 
 
+def capture(port=7865):
+    """Capture one live ZCode client request by pointing the client at us.
+
+    Launch the client with ZCODE_ENDPOINT_ORIGIN=http://127.0.0.1:<port> and send
+    any message; every model request (path, headers, body) is appended to
+    capture.jsonl for byte-level comparison with what this gateway sends.
+    """
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    target = ROOT / "capture.jsonl"
+
+    class Handler(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
+        def do_POST(self):
+            length = int(self.headers.get("content-length") or 0)
+            body = self.rfile.read(length) if length else b""
+            record = {
+                "time": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "method": self.command,
+                "path": self.path,
+                "headers": {k: v for k, v in self.headers.items()},
+                "body_sha256": hashlib.sha256(body).hexdigest(),
+                "body_preview": body[:2000].decode("utf-8", "replace"),
+            }
+            fd = os.open(target, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+            with os.fdopen(fd, "a") as handle:
+                handle.write(json.dumps(record) + "\n")
+                flush_and_sync(handle)
+            print(f"captured {self.command} {self.path} ({len(body)} bytes) -> {target}", flush=True)
+            payload = (
+                'event: message_start\ndata: {"type":"message_start","message":{"id":"msg_capture",'
+                '"type":"message","role":"assistant","content":[],"model":"capture",'
+                '"stop_reason":null,"usage":{"input_tokens":1,"output_tokens":0}}}\n\n'
+                'event: content_block_start\ndata: {"type":"content_block_start","index":0,'
+                '"content_block":{"type":"text","text":""}}\n\n'
+                'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,'
+                '"delta":{"type":"text_delta","text":"captured"}}\n\n'
+                'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n'
+                'event: message_delta\ndata: {"type":"message_delta","delta":{"stop_reason":"end_turn"},'
+                '"usage":{"output_tokens":1}}\n\n'
+                'event: message_stop\ndata: {"type":"message_stop"}\n\n'
+            ).encode()
+            self.send_response(200)
+            self.send_header("content-type", "text/event-stream")
+            self.send_header("content-length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    print(f"capture listener on http://127.0.0.1:{port} -> {target}")
+    print("now launch the client against it, e.g.:")
+    print(f"  ZCODE_ENDPOINT_ORIGIN=http://127.0.0.1:{port} open -a ZCode --env ZCODE_ENDPOINT_ORIGIN=http://127.0.0.1:{port}")
+    print("then send any message in ZCode; Ctrl-C here when done.")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+        print(f"stopped; captured requests are in {target}")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("start", "stop", "restart", "status", "token"))
+    parser.add_argument("command", choices=("start", "stop", "restart", "status", "token", "capture"))
     args = parser.parse_args()
     ROOT.mkdir(mode=0o700, parents=True, exist_ok=True)
     os.chmod(ROOT, 0o700)
@@ -285,6 +352,8 @@ def main():
                               "base_url": BASE + "/v1"}))
         elif args.command == "stop":
             stop()
+        elif args.command == "capture":
+            capture()
         elif args.command == "restart":
             stop()
             start()
