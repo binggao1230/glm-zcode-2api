@@ -66,6 +66,7 @@ python3 scripts/omp-gateway.py status    # runtime status + health
 python3 scripts/omp-gateway.py restart   # after re-logging into ZCode / switching plans
 python3 scripts/omp-gateway.py stop
 python3 scripts/omp-gateway.py token     # print the access token
+python3 scripts/omp-gateway.py usage     # live plan meter (5h window / weekly / today by hour)
 ```
 
 ### OMP (oh-my-pi) integration
