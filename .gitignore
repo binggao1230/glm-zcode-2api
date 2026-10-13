@@ -2,3 +2,4 @@ bin/
 config.local*.json
 *.local.json
 device.key
+__pycache__/
